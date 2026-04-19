@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAGBRAI LIII — Follow Along</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="title">
+      <h1>RAGBRAI <span class="edition">LIII</span></h1>
+      <p class="subtitle">An Iowa Classic · July 18–25, 2026 · Onawa → Dubuque</p>
+    </div>
+    <div class="stats">
+      <div><strong id="stat-miles">—</strong><span>miles</span></div>
+      <div><strong id="stat-climb">—</strong><span>ft of climb</span></div>
+      <div><strong id="stat-days">8</strong><span>days</span></div>
+    </div>
+  </header>
+
+  <main>
+    <section id="map-section">
+      <div id="map" aria-label="RAGBRAI route map"></div>
+      <div class="legend">
+        <span><i class="dot overnight"></i>Overnight town</span>
+        <span><i class="dot meeting"></i>Meeting town</span>
+        <span><i class="dot pass"></i>Pass-through</span>
+        <span><i class="dot special"></i>Special stop</span>
+        <span><i class="dot live"></i>Last seen</span>
+      </div>
+    </section>
+
+    <aside id="sidebar">
+      <div class="card">
+        <h2>Last seen</h2>
+        <p id="last-seen">Not riding yet — check back July 18.</p>
+      </div>
+      <div class="card">
+        <h2>Days</h2>
+        <ol id="day-list"></ol>
+      </div>
+      <div class="card">
+        <h2>Photos &amp; videos</h2>
+        <p class="muted small">Updated from the road — open in Google Photos.</p>
+        <a class="button" href="https://photos.app.goo.gl/NritnnHuR8to2ZPH9" target="_blank" rel="noopener noreferrer">View album →</a>
+      </div>
+      <div class="card">
+        <h2>Training miles</h2>
+        <p class="big-number"><strong id="training-miles">—</strong> mi</p>
+        <p class="muted small" id="training-meta">Loading…</p>
+        <a class="button" href="https://www.strava.com/clubs/2081067" target="_blank" rel="noopener noreferrer">Open Strava club →</a>
+      </div>
+      <div class="card">
+        <h2>Cheer us on</h2>
+        <p class="muted">Donation + cheer-wall coming soon.</p>
+      </div>
+    </aside>
+
+    <section id="elevation-section">
+      <h2>Elevation profile</h2>
+      <canvas id="elevation-chart"></canvas>
+      <p class="muted small">Approximate town elevations — refines when the official GPX is published.</p>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="route.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

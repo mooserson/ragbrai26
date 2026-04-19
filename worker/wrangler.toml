@@ -1,0 +1,24 @@
+name = "ragbrai-stats"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# Public, non-secret config — committed to the repo.
+[vars]
+STRAVA_CLIENT_ID = "227538"
+STRAVA_CLUB_ID = "2081067"
+ALLOWED_ORIGIN = "https://paulcathey.com"
+# REDIRECT_URI: filled in after first `wrangler deploy` prints your *.workers.dev URL.
+# Set to "<workers-url>/callback".
+REDIRECT_URI = "https://ragbrai-stats.pmcathey.workers.dev/callback"
+
+# Secret — set via `wrangler secret put STRAVA_CLIENT_SECRET` (never committed).
+
+# KV namespace — create with `wrangler kv:namespace create RAGBRAI_KV`,
+# then paste the printed id below.
+[[kv_namespaces]]
+binding = "RAGBRAI_KV"
+id = "ada3090fbcc04e658157742ffd768bdf"
+
+# Refresh stats every 6 hours.
+[triggers]
+crons = ["0 */6 * * *"]
