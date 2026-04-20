@@ -199,7 +199,7 @@ const elevationChart = new Chart(ctx, {
       }
     },
     scales: {
-      x: { ticks: { autoSkip: false, maxRotation: 70, minRotation: 60, font: { size: 10 } } },
+      x: { ticks: { autoSkip: true, autoSkipPadding: 10, maxRotation: 70, minRotation: 60, font: { size: 10 } } },
       y: { title: { display: true, text: "Feet" } },
     },
   },
