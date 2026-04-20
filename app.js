@@ -62,19 +62,32 @@ const metaEl = document.getElementById("training-meta");
 function rideLabel(n) {
   return n === 1 ? "1 ride" : `${(n ?? 0).toLocaleString()} rides`;
 }
+function animateCount(el, to, durationMs = 1100) {
+  const start = performance.now();
+  const dot = el.querySelector(".live-dot");
+  function tick(now) {
+    const t = Math.min(1, (now - start) / durationMs);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const value = to * eased;
+    el.firstChild.nodeValue = (Math.round(value * 10) / 10).toLocaleString();
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  if (dot) el.firstChild.nodeValue = "0";
+  requestAnimationFrame(tick);
+}
 if (statsApi) {
   fetch(`${statsApi}/stats`)
     .then(r => r.json())
     .then(s => {
-      milesEl.textContent = (s.total_miles ?? 0).toLocaleString();
+      animateCount(milesEl, s.total_miles ?? 0);
       metaEl.textContent = `training miles | ${rideLabel(s.ride_count)}`;
     })
     .catch(() => {
-      milesEl.textContent = "—";
+      milesEl.firstChild.nodeValue = "—";
       metaEl.textContent = "training miles";
     });
 } else {
-  milesEl.textContent = "—";
+  milesEl.firstChild.nodeValue = "—";
   metaEl.textContent = "training miles";
 }
 
