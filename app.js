@@ -35,6 +35,22 @@ const styleByKind = {
   special:   { color: "#7a0a4a", fill: "#ff5ec4", radius: 7 },
 };
 
+function haversineMiles(a, b) {
+  const R = 3958.8;
+  const toRad = d => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const cumulativeMiles = [];
+let _running = 0;
+route.forEach((p, i) => {
+  if (i > 0) _running += haversineMiles(route[i - 1], p);
+  cumulativeMiles[i] = _running;
+});
+
 const waypointMarkers = [];
 route.forEach((p, idx) => {
   const s = styleByKind[p.kind] || styleByKind.pass;
@@ -43,7 +59,7 @@ route.forEach((p, idx) => {
   })
     .addTo(map)
     .bindTooltip(
-      `<strong>${p.name}</strong><br>Day ${p.day} · ${p.kind}<br>${p.elevation_ft} ft`,
+      `<strong>${p.name}</strong><br>Day ${p.day} · ${p.kind}<br>Mile ${cumulativeMiles[idx].toFixed(1)}`,
       { direction: "top", offset: [0, -6], sticky: false, opacity: 0.95 },
     );
   m.on("mouseover", () => syncFromMap(idx));
@@ -160,7 +176,7 @@ const elevationChart = new Chart(ctx, {
       tooltip: {
         callbacks: {
           title: items => route[items[0].dataIndex].name,
-          label: ctx => `${ctx.parsed.y.toLocaleString()} ft · Day ${route[ctx.dataIndex].day}`,
+          label: ctx => `${ctx.parsed.y.toLocaleString()} ft · Mile ${cumulativeMiles[ctx.dataIndex].toFixed(1)} · Day ${route[ctx.dataIndex].day}`,
         },
       },
     },
