@@ -71,7 +71,7 @@ header h1 {
 
 main {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 360px;
   grid-template-rows: auto auto;
   grid-template-areas:
     "map sidebar"
@@ -146,16 +146,18 @@ main {
 }
 #day-list li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   padding: 0.15rem 0;
 }
+#day-list li strong { white-space: nowrap; }
 #day-list input[type="checkbox"] {
   accent-color: var(--green);
   width: 1.05rem;
   height: 1.05rem;
   cursor: default;
   flex-shrink: 0;
+  margin-top: 0.2rem;
 }
 #day-list li.done {
   color: var(--muted);

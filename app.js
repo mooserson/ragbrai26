@@ -46,13 +46,18 @@ route.forEach(p => {
 
 const dayList = document.getElementById("day-list");
 const overnights = route.filter(p => p.kind === "overnight");
+function rideDateLabel(dayIndex) {
+  const d = new Date(startDate);
+  d.setDate(d.getDate() + dayIndex - 1);
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+}
 overnights.forEach((p, i) => {
   if (i === 0) return;
   const prev = overnights[i - 1];
   const li = document.createElement("li");
   const done = i <= daysCompleted;
   if (done) li.classList.add("done");
-  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>Day ${i}</strong> · ${prev.name} → ${p.name}`;
+  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>${rideDateLabel(i)}</strong> · ${prev.name} → ${p.name}`;
   dayList.appendChild(li);
 });
 
