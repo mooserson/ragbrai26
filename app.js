@@ -1,8 +1,22 @@
 const route = window.RAGBRAI_ROUTE;
 const meta = window.RAGBRAI_META;
 
-document.getElementById("stat-miles").textContent = meta.total_miles.toLocaleString();
-document.getElementById("stat-climb").textContent = meta.total_climb_ft.toLocaleString();
+const startDate = new Date(`${meta.start_date}T00:00:00`);
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const msPerDay = 24 * 60 * 60 * 1000;
+const daysToStart = Math.ceil((startDate - today) / msPerDay);
+const RIDE_DAYS = 8;
+const daysCompleted = daysToStart >= 0 ? 0 : Math.min(RIDE_DAYS, -daysToStart);
+const progress = daysCompleted / RIDE_DAYS;
+
+const milesDone = (meta.total_miles * progress).toFixed(1);
+const climbDone = Math.round(meta.total_climb_ft * progress);
+document.getElementById("stat-miles").textContent =
+  `${milesDone}/${meta.total_miles.toLocaleString()}`;
+document.getElementById("stat-climb").textContent =
+  `${climbDone.toLocaleString()}/${meta.total_climb_ft.toLocaleString()}`;
+document.getElementById("stat-days").textContent = `${daysCompleted}/${RIDE_DAYS}`;
 
 const map = L.map("map", { scrollWheelZoom: false });
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -63,11 +77,6 @@ if (statsApi) {
   metaEl.textContent = "training miles";
 }
 
-const startDate = new Date(`${meta.start_date}T00:00:00`);
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-const msPerDay = 24 * 60 * 60 * 1000;
-const daysToStart = Math.ceil((startDate - today) / msPerDay);
 const countdownEl = document.getElementById("countdown-days");
 const countdownMetaEl = document.getElementById("countdown-meta");
 if (daysToStart > 0) {
