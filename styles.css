@@ -139,9 +139,30 @@ main {
 
 #day-list {
   margin: 0;
-  padding-left: 1.2rem;
+  padding-left: 0;
+  list-style: none;
   font-size: 0.9rem;
   line-height: 1.6;
+}
+#day-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+#day-list input[type="checkbox"] {
+  accent-color: var(--green);
+  width: 1.05rem;
+  height: 1.05rem;
+  cursor: default;
+  flex-shrink: 0;
+}
+#day-list li.done {
+  color: var(--muted);
+}
+#day-list li.done strong {
+  color: var(--muted);
+  text-decoration: line-through;
 }
 
 .muted { color: var(--muted); }

@@ -50,7 +50,9 @@ overnights.forEach((p, i) => {
   if (i === 0) return;
   const prev = overnights[i - 1];
   const li = document.createElement("li");
-  li.innerHTML = `<strong>Day ${i}</strong> · ${prev.name} → ${p.name}`;
+  const done = i <= daysCompleted;
+  if (done) li.classList.add("done");
+  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>Day ${i}</strong> · ${prev.name} → ${p.name}`;
   dayList.appendChild(li);
 });
 
