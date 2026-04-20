@@ -248,9 +248,10 @@ main {
   letter-spacing: 0.05em;
 }
 
-#elevation-chart {
-  height: 220px !important;
-  width: 100% !important;
+.chart-wrap {
+  position: relative;
+  height: 240px;
+  width: 100%;
 }
 
 @media (max-width: 900px) {

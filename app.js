@@ -35,14 +35,33 @@ const styleByKind = {
   special:   { color: "#7a0a4a", fill: "#ff5ec4", radius: 7 },
 };
 
-route.forEach(p => {
+const waypointMarkers = [];
+route.forEach((p, idx) => {
   const s = styleByKind[p.kind] || styleByKind.pass;
-  L.circleMarker([p.lat, p.lng], {
+  const m = L.circleMarker([p.lat, p.lng], {
     color: s.color, fillColor: s.fill, fillOpacity: 1, weight: 2, radius: s.radius,
   })
     .addTo(map)
     .bindPopup(`<strong>${p.name}</strong><br>Day ${p.day} · ${p.kind}<br>${p.elevation_ft} ft`);
+  m.on("mouseover", () => syncFromMap(idx));
+  m.on("mouseout", () => clearSync());
+  waypointMarkers.push(m);
 });
+
+const hoverMarker = L.circleMarker([42, -94], {
+  radius: 10, color: "#1a2a22", fillColor: "#ffd54a",
+  fillOpacity: 1, weight: 3, interactive: false,
+});
+let hoverShown = false;
+function showHoverAt(idx) {
+  const p = route[idx];
+  if (!p) return;
+  hoverMarker.setLatLng([p.lat, p.lng]);
+  if (!hoverShown) { hoverMarker.addTo(map); hoverShown = true; }
+}
+function hideHover() {
+  if (hoverShown) { map.removeLayer(hoverMarker); hoverShown = false; }
+}
 
 const dayList = document.getElementById("day-list");
 const overnights = route.filter(p => p.kind === "overnight");
@@ -110,29 +129,61 @@ if (daysToStart > 0) {
   countdownMetaEl.textContent = "day of ride";
 }
 
-const ctx = document.getElementById("elevation-chart").getContext("2d");
-new Chart(ctx, {
+const canvas = document.getElementById("elevation-chart");
+const ctx = canvas.getContext("2d");
+const elevationChart = new Chart(ctx, {
   type: "line",
   data: {
     labels: route.map(p => p.name),
     datasets: [{
-      label: "Elevation (ft)",
+      label: "Elevation",
       data: route.map(p => p.elevation_ft),
       borderColor: "#1f8f3b",
       backgroundColor: "rgba(31, 143, 59, 0.15)",
       fill: true,
       tension: 0.35,
       pointRadius: route.map(p => p.kind === "overnight" ? 5 : 2),
+      pointHoverRadius: 8,
       pointBackgroundColor: route.map(p => p.kind === "overnight" ? "#0a3d62" : "#1f8f3b"),
     }],
   },
   options: {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
+    interaction: { mode: "index", intersect: false, axis: "x" },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          title: items => route[items[0].dataIndex].name,
+          label: ctx => `${ctx.parsed.y.toLocaleString()} ft · Day ${route[ctx.dataIndex].day}`,
+        },
+      },
+    },
+    onHover: (_event, elements) => {
+      if (elements.length > 0) {
+        showHoverAt(elements[0].index);
+      } else {
+        hideHover();
+      }
+    },
     scales: {
       x: { ticks: { autoSkip: false, maxRotation: 70, minRotation: 60, font: { size: 10 } } },
       y: { title: { display: true, text: "Feet" } },
     },
   },
 });
+canvas.addEventListener("mouseleave", hideHover);
+
+function syncFromMap(idx) {
+  showHoverAt(idx);
+  elevationChart.setActiveElements([{ datasetIndex: 0, index: idx }]);
+  elevationChart.tooltip.setActiveElements([{ datasetIndex: 0, index: idx }], { x: 0, y: 0 });
+  elevationChart.update();
+}
+function clearSync() {
+  hideHover();
+  elevationChart.setActiveElements([]);
+  elevationChart.tooltip.setActiveElements([], { x: 0, y: 0 });
+  elevationChart.update();
+}
