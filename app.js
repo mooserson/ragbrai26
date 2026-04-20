@@ -48,17 +48,19 @@ if (statsApi) {
     .then(r => r.json())
     .then(s => {
       milesEl.textContent = (s.total_miles ?? 0).toLocaleString();
-      metaEl.textContent = s.updated_at
-        ? `${s.ride_count ?? 0} rides · updated ${new Date(s.updated_at).toLocaleString()}`
-        : "Connect Strava to start tracking.";
+      metaEl.textContent = "training miles";
+      if (s.updated_at) {
+        metaEl.title = `${s.ride_count ?? 0} rides · updated ${new Date(s.updated_at).toLocaleString()}`;
+      }
     })
     .catch(() => {
       milesEl.textContent = "—";
-      metaEl.textContent = "Stats unavailable.";
+      metaEl.textContent = "training miles";
+      metaEl.title = "Stats unavailable.";
     });
 } else {
   milesEl.textContent = "—";
-  metaEl.textContent = "Stats endpoint not configured.";
+  metaEl.textContent = "training miles";
 }
 
 const startDate = new Date(`${meta.start_date}T00:00:00`);
@@ -70,14 +72,14 @@ const countdownEl = document.getElementById("countdown-days");
 const countdownMetaEl = document.getElementById("countdown-meta");
 if (daysToStart > 0) {
   countdownEl.textContent = daysToStart.toLocaleString();
-  countdownMetaEl.textContent = `until July 18, 2026 · wheels down in Onawa`;
+  countdownMetaEl.textContent = "days to Onawa";
 } else if (daysToStart === 0) {
   countdownEl.textContent = "0";
-  countdownMetaEl.textContent = "Today's the day — ride starts in Onawa!";
+  countdownMetaEl.textContent = "today's the day!";
 } else {
   const dayOfRide = Math.min(8, 1 - daysToStart);
   countdownEl.textContent = dayOfRide;
-  countdownMetaEl.textContent = `Day ${dayOfRide} of the ride`;
+  countdownMetaEl.textContent = "day of ride";
 }
 
 const ctx = document.getElementById("elevation-chart").getContext("2d");
