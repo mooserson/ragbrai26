@@ -19,6 +19,7 @@ REDIRECT_URI = "https://ragbrai-stats.pmcathey.workers.dev/callback"
 binding = "RAGBRAI_KV"
 id = "ada3090fbcc04e658157742ffd768bdf"
 
-# Refresh stats every 6 hours.
+# Refresh stats every 15 minutes (96 fires/day; well under Strava's
+# 1000/day and Cloudflare's 100k req/day free quotas).
 [triggers]
-crons = ["0 */6 * * *"]
+crons = ["*/15 * * * *"]
