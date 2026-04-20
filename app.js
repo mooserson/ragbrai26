@@ -68,7 +68,7 @@ route.forEach((p, idx) => {
 });
 
 const hoverMarker = L.circleMarker([42, -94], {
-  radius: 10, color: "#1a2a22", fillColor: "#ffd54a",
+  radius: 12, color: "#ffd54a", fillColor: "#ffd54a",
   fillOpacity: 0, opacity: 0, weight: 3, interactive: false,
 }).addTo(map);
 
@@ -77,7 +77,7 @@ function showHoverAt(idx) {
   const p = route[idx];
   if (!p) return;
   hoverMarker.setLatLng([p.lat, p.lng]);
-  hoverMarker.setStyle({ opacity: 1, fillOpacity: 1 });
+  hoverMarker.setStyle({ opacity: 1, fillOpacity: 0 });
   hoverMarker.bringToFront();
   if (lastHoverIdx !== null && lastHoverIdx !== idx) {
     waypointMarkers[lastHoverIdx]?.closeTooltip();
