@@ -42,7 +42,10 @@ route.forEach((p, idx) => {
     color: s.color, fillColor: s.fill, fillOpacity: 1, weight: 2, radius: s.radius,
   })
     .addTo(map)
-    .bindPopup(`<strong>${p.name}</strong><br>Day ${p.day} · ${p.kind}<br>${p.elevation_ft} ft`);
+    .bindTooltip(
+      `<strong>${p.name}</strong><br>Day ${p.day} · ${p.kind}<br>${p.elevation_ft} ft`,
+      { direction: "top", offset: [0, -6], sticky: false, opacity: 0.95 },
+    );
   m.on("mouseover", () => syncFromMap(idx));
   m.on("mouseout", () => clearSync());
   waypointMarkers.push(m);
@@ -50,17 +53,18 @@ route.forEach((p, idx) => {
 
 const hoverMarker = L.circleMarker([42, -94], {
   radius: 10, color: "#1a2a22", fillColor: "#ffd54a",
-  fillOpacity: 1, weight: 3, interactive: false,
-});
-let hoverShown = false;
+  fillOpacity: 0, opacity: 0, weight: 3, interactive: false,
+}).addTo(map);
+
 function showHoverAt(idx) {
   const p = route[idx];
   if (!p) return;
   hoverMarker.setLatLng([p.lat, p.lng]);
-  if (!hoverShown) { hoverMarker.addTo(map); hoverShown = true; }
+  hoverMarker.setStyle({ opacity: 1, fillOpacity: 1 });
+  hoverMarker.bringToFront();
 }
 function hideHover() {
-  if (hoverShown) { map.removeLayer(hoverMarker); hoverShown = false; }
+  hoverMarker.setStyle({ opacity: 0, fillOpacity: 0 });
 }
 
 const dayList = document.getElementById("day-list");
