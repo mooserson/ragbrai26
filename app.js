@@ -57,20 +57,19 @@ overnights.forEach((p, i) => {
 const statsApi = window.RAGBRAI_CONFIG && window.RAGBRAI_CONFIG.STATS_API;
 const milesEl = document.getElementById("training-miles");
 const metaEl = document.getElementById("training-meta");
+function rideLabel(n) {
+  return n === 1 ? "1 ride" : `${(n ?? 0).toLocaleString()} rides`;
+}
 if (statsApi) {
   fetch(`${statsApi}/stats`)
     .then(r => r.json())
     .then(s => {
       milesEl.textContent = (s.total_miles ?? 0).toLocaleString();
-      metaEl.textContent = "training miles";
-      if (s.updated_at) {
-        metaEl.title = `${s.ride_count ?? 0} rides · updated ${new Date(s.updated_at).toLocaleString()}`;
-      }
+      metaEl.textContent = `training miles | ${rideLabel(s.ride_count)}`;
     })
     .catch(() => {
       milesEl.textContent = "—";
       metaEl.textContent = "training miles";
-      metaEl.title = "Stats unavailable.";
     });
 } else {
   milesEl.textContent = "—";
