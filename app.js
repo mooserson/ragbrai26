@@ -67,27 +67,26 @@ route.forEach((p, idx) => {
   waypointMarkers.push(m);
 });
 
-const hoverMarker = L.circleMarker([42, -94], {
-  radius: 12, color: "#ffd54a", fillColor: "#ffd54a",
-  fillOpacity: 0, opacity: 0, weight: 3, interactive: false,
-}).addTo(map);
-
+const HOVER_RADIUS_BUMP = 4;
+function baseRadiusFor(idx) {
+  const p = route[idx];
+  return (styleByKind[p.kind] || styleByKind.pass).radius;
+}
 let lastHoverIdx = null;
 function showHoverAt(idx) {
-  const p = route[idx];
-  if (!p) return;
-  hoverMarker.setLatLng([p.lat, p.lng]);
-  hoverMarker.setStyle({ opacity: 1, fillOpacity: 0 });
-  hoverMarker.bringToFront();
+  if (!route[idx]) return;
   if (lastHoverIdx !== null && lastHoverIdx !== idx) {
+    waypointMarkers[lastHoverIdx]?.setRadius(baseRadiusFor(lastHoverIdx));
     waypointMarkers[lastHoverIdx]?.closeTooltip();
   }
+  waypointMarkers[idx]?.setRadius(baseRadiusFor(idx) + HOVER_RADIUS_BUMP);
+  waypointMarkers[idx]?.bringToFront();
   waypointMarkers[idx]?.openTooltip();
   lastHoverIdx = idx;
 }
 function hideHover() {
-  hoverMarker.setStyle({ opacity: 0, fillOpacity: 0 });
   if (lastHoverIdx !== null) {
+    waypointMarkers[lastHoverIdx]?.setRadius(baseRadiusFor(lastHoverIdx));
     waypointMarkers[lastHoverIdx]?.closeTooltip();
     lastHoverIdx = null;
   }
