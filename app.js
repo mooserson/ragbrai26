@@ -172,9 +172,11 @@ const elevationChart = new Chart(ctx, {
       backgroundColor: "rgba(31, 143, 59, 0.15)",
       fill: true,
       tension: 0.35,
-      pointRadius: route.map(p => p.kind === "overnight" ? 5 : 2),
+      pointRadius: route.map(p => (styleByKind[p.kind] || styleByKind.pass).radius * 0.6),
       pointHoverRadius: 8,
-      pointBackgroundColor: route.map(p => p.kind === "overnight" ? "#0a3d62" : "#1f8f3b"),
+      pointBackgroundColor: route.map(p => (styleByKind[p.kind] || styleByKind.pass).fill),
+      pointBorderColor: route.map(p => (styleByKind[p.kind] || styleByKind.pass).color),
+      pointBorderWidth: 2,
     }],
   },
   options: {
