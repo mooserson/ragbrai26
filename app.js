@@ -72,15 +72,25 @@ const hoverMarker = L.circleMarker([42, -94], {
   fillOpacity: 0, opacity: 0, weight: 3, interactive: false,
 }).addTo(map);
 
+let lastHoverIdx = null;
 function showHoverAt(idx) {
   const p = route[idx];
   if (!p) return;
   hoverMarker.setLatLng([p.lat, p.lng]);
   hoverMarker.setStyle({ opacity: 1, fillOpacity: 1 });
   hoverMarker.bringToFront();
+  if (lastHoverIdx !== null && lastHoverIdx !== idx) {
+    waypointMarkers[lastHoverIdx]?.closeTooltip();
+  }
+  waypointMarkers[idx]?.openTooltip();
+  lastHoverIdx = idx;
 }
 function hideHover() {
   hoverMarker.setStyle({ opacity: 0, fillOpacity: 0 });
+  if (lastHoverIdx !== null) {
+    waypointMarkers[lastHoverIdx]?.closeTooltip();
+    lastHoverIdx = null;
+  }
 }
 
 const dayList = document.getElementById("day-list");
@@ -197,8 +207,11 @@ canvas.addEventListener("mouseleave", hideHover);
 
 function syncFromMap(idx) {
   showHoverAt(idx);
+  const meta = elevationChart.getDatasetMeta(0);
+  const pt = meta.data[idx];
+  const pos = pt ? { x: pt.x, y: pt.y } : { x: 0, y: 0 };
   elevationChart.setActiveElements([{ datasetIndex: 0, index: idx }]);
-  elevationChart.tooltip.setActiveElements([{ datasetIndex: 0, index: idx }], { x: 0, y: 0 });
+  elevationChart.tooltip.setActiveElements([{ datasetIndex: 0, index: idx }], pos);
   elevationChart.update();
 }
 function clearSync() {
