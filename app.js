@@ -61,6 +61,25 @@ if (statsApi) {
   metaEl.textContent = "Stats endpoint not configured.";
 }
 
+const startDate = new Date(`${meta.start_date}T00:00:00`);
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const msPerDay = 24 * 60 * 60 * 1000;
+const daysToStart = Math.ceil((startDate - today) / msPerDay);
+const countdownEl = document.getElementById("countdown-days");
+const countdownMetaEl = document.getElementById("countdown-meta");
+if (daysToStart > 0) {
+  countdownEl.textContent = daysToStart.toLocaleString();
+  countdownMetaEl.textContent = `until July 18, 2026 · wheels down in Onawa`;
+} else if (daysToStart === 0) {
+  countdownEl.textContent = "0";
+  countdownMetaEl.textContent = "Today's the day — ride starts in Onawa!";
+} else {
+  const dayOfRide = Math.min(8, 1 - daysToStart);
+  countdownEl.textContent = dayOfRide;
+  countdownMetaEl.textContent = `Day ${dayOfRide} of the ride`;
+}
+
 const ctx = document.getElementById("elevation-chart").getContext("2d");
 new Chart(ctx, {
   type: "line",

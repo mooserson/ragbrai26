@@ -172,6 +172,50 @@ main {
   font-weight: 700;
 }
 
+#hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.hero-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.hero-card h2 {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--navy);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hero-number {
+  margin: 0.25rem 0 0.1rem;
+  font-size: 1rem;
+  color: var(--muted);
+}
+.hero-number strong {
+  font-size: 3rem;
+  color: var(--green);
+  font-weight: 700;
+  line-height: 1;
+  margin-right: 0.2em;
+}
+
+@media (max-width: 700px) {
+  #hero { grid-template-columns: 1fr; }
+}
+
 #elevation-section {
   background: var(--card);
   border: 1px solid var(--border);
