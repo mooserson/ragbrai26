@@ -99,11 +99,12 @@ function rideDateLabel(dayIndex) {
   return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
 }
 const dayInfo = meta.days || [];
-dayInfo.forEach(d => {
+dayInfo.forEach((d, i) => {
   const li = document.createElement("li");
   const done = d.day <= daysCompleted;
   if (done) li.classList.add("done");
-  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>${rideDateLabel(d.day)}</strong> · ${d.from} → ${d.to} <span class="day-miles">${d.miles.toFixed(1)} mi</span>`;
+  const leg = i === 0 ? `${d.from} → ${d.to}` : `→ ${d.to}`;
+  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>${rideDateLabel(d.day)}</strong> · ${leg} <span class="day-miles">${d.miles.toFixed(1)} mi</span>`;
   dayList.appendChild(li);
 });
 
