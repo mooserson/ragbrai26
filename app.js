@@ -6,7 +6,7 @@ const today = new Date();
 today.setHours(0, 0, 0, 0);
 const msPerDay = 24 * 60 * 60 * 1000;
 const daysToStart = Math.ceil((startDate - today) / msPerDay);
-const RIDE_DAYS = 8;
+const RIDE_DAYS = (meta.days && meta.days.length) || 7;
 const daysCompleted = daysToStart >= 0 ? 0 : Math.min(RIDE_DAYS, -daysToStart);
 const progress = daysCompleted / RIDE_DAYS;
 
@@ -93,22 +93,17 @@ function hideHover() {
 }
 
 const dayList = document.getElementById("day-list");
-const overnights = route.filter(p => p.kind === "overnight");
 function rideDateLabel(dayIndex) {
   const d = new Date(startDate);
   d.setDate(d.getDate() + dayIndex - 1);
   return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
 }
-overnights.forEach((p, i) => {
-  if (i === 0) return;
-  const prev = overnights[i - 1];
-  const prevIdx = route.indexOf(prev);
-  const curIdx = route.indexOf(p);
-  const dayMiles = Math.round(cumulativeMiles[curIdx] - cumulativeMiles[prevIdx]);
+const dayInfo = meta.days || [];
+dayInfo.forEach(d => {
   const li = document.createElement("li");
-  const done = i <= daysCompleted;
+  const done = d.day <= daysCompleted;
   if (done) li.classList.add("done");
-  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>${rideDateLabel(i)}</strong> · ${prev.name} → ${p.name} <span class="day-miles">${dayMiles} mi</span>`;
+  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>${rideDateLabel(d.day)}</strong> · ${d.from} → ${d.to} <span class="day-miles">${d.miles.toFixed(1)} mi</span>`;
   dayList.appendChild(li);
 });
 
@@ -156,7 +151,7 @@ if (daysToStart > 0) {
   countdownEl.textContent = "0";
   countdownMetaEl.textContent = "today's the day!";
 } else {
-  const dayOfRide = Math.min(8, 1 - daysToStart);
+  const dayOfRide = Math.min(RIDE_DAYS, 1 - daysToStart);
   countdownEl.textContent = dayOfRide;
   countdownMetaEl.textContent = "day of ride";
 }
@@ -202,7 +197,24 @@ const elevationChart = new Chart(ctx, {
       }
     },
     scales: {
-      x: { ticks: { autoSkip: true, autoSkipPadding: 10, maxRotation: 70, minRotation: 60, font: { size: 10 } } },
+      x: {
+        ticks: {
+          autoSkip: false,
+          maxRotation: 70,
+          minRotation: 60,
+          font: { size: 10 },
+          // Mobile (<=480px): only show stops that matter — overnight, meeting, special.
+          // Desktop: show every town.
+          callback: function(_value, index) {
+            const p = route[index];
+            if (!p) return "";
+            if (window.innerWidth <= 480) {
+              return (p.kind === "overnight" || p.kind === "meeting" || p.kind === "special") ? p.name : "";
+            }
+            return p.name;
+          },
+        },
+      },
       y: { title: { display: true, text: "Feet" } },
     },
   },
