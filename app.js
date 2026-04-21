@@ -102,10 +102,13 @@ function rideDateLabel(dayIndex) {
 overnights.forEach((p, i) => {
   if (i === 0) return;
   const prev = overnights[i - 1];
+  const prevIdx = route.indexOf(prev);
+  const curIdx = route.indexOf(p);
+  const dayMiles = Math.round(cumulativeMiles[curIdx] - cumulativeMiles[prevIdx]);
   const li = document.createElement("li");
   const done = i <= daysCompleted;
   if (done) li.classList.add("done");
-  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>${rideDateLabel(i)}</strong> · ${prev.name} → ${p.name}`;
+  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>${rideDateLabel(i)}</strong> · ${prev.name} → ${p.name} <span class="day-miles">${dayMiles} mi</span>`;
   dayList.appendChild(li);
 });
 

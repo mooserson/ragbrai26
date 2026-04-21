@@ -166,6 +166,14 @@ main {
   color: var(--muted);
   text-decoration: line-through;
 }
+#day-list .day-miles {
+  margin-left: auto;
+  padding-left: 0.5rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
 
 .muted { color: var(--muted); }
 .small { font-size: 0.8rem; }
