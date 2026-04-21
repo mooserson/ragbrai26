@@ -104,7 +104,7 @@ dayInfo.forEach((d, i) => {
   const done = d.day <= daysCompleted;
   if (done) li.classList.add("done");
   const leg = i === 0 ? `${d.from} → ${d.to}` : `→ ${d.to}`;
-  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>${rideDateLabel(d.day)}</strong> · ${leg} <span class="day-miles">${d.miles.toFixed(1)} mi</span>`;
+  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>${rideDateLabel(d.day)}</strong> · ${leg} <span class="day-miles">${d.miles.toFixed(1)} mi <span class="day-sep">|</span> ${d.climb_ft.toLocaleString()} ft</span>`;
   dayList.appendChild(li);
 });
 
