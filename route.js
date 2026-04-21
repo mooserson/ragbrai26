@@ -49,8 +49,8 @@ window.RAGBRAI_META = {
   edition: "LIII",
   start_date: "2026-07-19", // first ride day (Sunday); Saturday 07/18 is arrival in Onawa
   end_date: "2026-07-25",
-  total_miles: 406.9,
-  total_climb_ft: 16091,
+  total_miles: 391.4,
+  total_climb_ft: 16027,
   start: "Onawa",
   end: "Dubuque",
   days: [
