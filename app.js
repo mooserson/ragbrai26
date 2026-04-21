@@ -13,10 +13,10 @@ const progress = daysCompleted / RIDE_DAYS;
 const milesDone = (meta.total_miles * progress).toFixed(1);
 const climbDone = Math.round(meta.total_climb_ft * progress);
 document.getElementById("stat-miles").textContent =
-  `${milesDone}/${meta.total_miles.toLocaleString()}`;
+  `${milesDone} / ${meta.total_miles.toLocaleString()}`;
 document.getElementById("stat-climb").textContent =
-  `${climbDone.toLocaleString()}/${meta.total_climb_ft.toLocaleString()}`;
-document.getElementById("stat-days").textContent = `${daysCompleted}/${RIDE_DAYS}`;
+  `${climbDone.toLocaleString()} / ${meta.total_climb_ft.toLocaleString()}`;
+document.getElementById("stat-days").textContent = `${daysCompleted} / ${RIDE_DAYS}`;
 
 const map = L.map("map", { scrollWheelZoom: false });
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
