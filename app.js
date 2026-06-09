@@ -222,6 +222,85 @@ const elevationChart = new Chart(ctx, {
 });
 canvas.addEventListener("mouseleave", hideHover);
 
+// --- Live "last seen" location ---
+const lastSeenEl = document.getElementById("last-seen");
+let liveMarker = null;
+let liveTrail = null;
+
+function timeAgo(ts) {
+  const mins = Math.round((Date.now() - new Date(ts)) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 36) return `${hrs} hr${hrs === 1 ? "" : "s"} ago`;
+  return `${Math.round(hrs / 24)} days ago`;
+}
+
+// Project onto the nearest route segment to estimate the mile marker.
+// Equirectangular is plenty accurate at town-to-town distances.
+function routePosition(lat, lng) {
+  const toRad = d => (d * Math.PI) / 180;
+  const cosLat = Math.cos(toRad(lat));
+  const px = toRad(lng) * cosLat, py = toRad(lat);
+  let best = null;
+  for (let i = 0; i < route.length - 1; i++) {
+    const ax = toRad(route[i].lng) * cosLat, ay = toRad(route[i].lat);
+    const bx = toRad(route[i + 1].lng) * cosLat, by = toRad(route[i + 1].lat);
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    const t = len2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2)) : 0;
+    const ex = ax + t * dx - px, ey = ay + t * dy - py;
+    const dist2 = ex * ex + ey * ey;
+    if (!best || dist2 < best.dist2) best = { i, t, dist2 };
+  }
+  const mile = cumulativeMiles[best.i]
+    + best.t * (cumulativeMiles[best.i + 1] - cumulativeMiles[best.i]);
+  const nearIdx = best.t < 0.5 ? best.i : best.i + 1;
+  return { mile, near: route[nearIdx].name };
+}
+
+function renderLive(data) {
+  const latest = data && data.latest;
+  if (!latest || !Number.isFinite(latest.lat) || !Number.isFinite(latest.lng)) return;
+
+  const ll = [latest.lat, latest.lng];
+  if (!liveMarker) {
+    liveMarker = L.marker(ll, {
+      icon: L.divIcon({ className: "live-marker", iconSize: [16, 16] }),
+      zIndexOffset: 1000,
+    }).addTo(map);
+  } else {
+    liveMarker.setLatLng(ll);
+  }
+  liveMarker.bindTooltip(`Last seen ${timeAgo(latest.ts)}`, { direction: "top", offset: [0, -8] });
+
+  const trailPts = (data.trail || []).map(p => [p.lat, p.lng]);
+  if (trailPts.length > 1) {
+    if (!liveTrail) {
+      liveTrail = L.polyline(trailPts, {
+        color: "#ff3b3b", weight: 3, opacity: 0.6, dashArray: "1 6",
+      }).addTo(map);
+    } else {
+      liveTrail.setLatLngs(trailPts);
+    }
+  }
+
+  const pos = routePosition(latest.lat, latest.lng);
+  lastSeenEl.textContent =
+    `${timeAgo(latest.ts)} · ~mile ${pos.mile.toFixed(1)}, near ${pos.near}`;
+}
+
+function pollLive() {
+  fetch(`${statsApi}/location`)
+    .then(r => r.json())
+    .then(renderLive)
+    .catch(() => {});
+}
+if (statsApi) {
+  pollLive();
+  setInterval(pollLive, 60 * 1000);
+}
+
 function syncFromMap(idx) {
   showHoverAt(idx);
   const meta = elevationChart.getDatasetMeta(0);

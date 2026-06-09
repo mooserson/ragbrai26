@@ -11,7 +11,9 @@ ALLOWED_ORIGIN = "https://paulcathey.com"
 # Set to "<workers-url>/callback".
 REDIRECT_URI = "https://ragbrai-stats.pmcathey.workers.dev/callback"
 
-# Secret — set via `wrangler secret put STRAVA_CLIENT_SECRET` (never committed).
+# Secrets — set via `wrangler secret put <NAME>` (never committed):
+#   STRAVA_CLIENT_SECRET — from strava.com/settings/api
+#   BEACON_TOKEN — shared secret the phone sends with POST /location
 
 # KV namespace — create with `wrangler kv:namespace create RAGBRAI_KV`,
 # then paste the printed id below.

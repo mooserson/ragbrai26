@@ -1,6 +1,6 @@
 # RAGBRAI Stats Worker
 
-Cloudflare Worker that pulls Strava club ride totals on a 6-hour cron and exposes a single `GET /stats` endpoint the static site fetches.
+Cloudflare Worker that pulls Strava club ride totals on a 15-minute cron (`GET /stats`) and stores live ride location (`POST /location` from the phone, `GET /location` for the site).
 
 ## What you need before starting
 
@@ -56,6 +56,34 @@ Visit `https://ragbrai-stats.<your-subdomain>.workers.dev/stats` to confirm — 
 
 The cron now runs every 6 hours. Force a refresh by hitting `/auth` again, or just wait.
 
+## Live location
+
+Endpoints:
+
+- `POST /location` — body `{lat, lng, ts?, acc?}` or an [Overland](https://overland.p3k.app/) batch (`{locations: [...]}`). Auth: `Authorization: Bearer <BEACON_TOKEN>` header or `?token=<BEACON_TOKEN>` query param. Stores the latest fix plus a per-day breadcrumb trail (thinned to 1 point / 2 min, capped at 600 points, day boundary = America/Chicago).
+- `GET /location` — `{latest: {lat, lng, ts, acc}, trail: [{lat, lng, ts}, ...]}` for the latest fix's ride day. Public, no auth.
+
+Setup:
+
+```bash
+npx wrangler secret put BEACON_TOKEN   # any long random string; also goes on the phone
+npx wrangler deploy
+```
+
+Generate a token with e.g. `openssl rand -hex 16`. Senders:
+
+- `beacon.html` on the site — paste the token once (saved in localStorage), then manual or 10-min auto check-ins.
+- Overland app — set Receiver URL to `https://ragbrai-stats.pmcathey.workers.dev/location?token=<BEACON_TOKEN>`.
+
+Test from a laptop:
+
+```bash
+curl -X POST "https://ragbrai-stats.pmcathey.workers.dev/location" \
+  -H "Authorization: Bearer <BEACON_TOKEN>" -H "Content-Type: application/json" \
+  -d '{"lat": 42.0269, "lng": -96.0975}'
+curl "https://ragbrai-stats.pmcathey.workers.dev/location"
+```
+
 ## Troubleshooting
 
 - **`OAuth failed`** in the callback: usually a Client Secret mismatch or wrong callback domain in Strava settings.
@@ -65,5 +93,5 @@ The cron now runs every 6 hours. Force a refresh by hitting `/auth` again, or ju
 ## Files
 
 - `wrangler.toml` — config (no secrets)
-- `src/index.js` — Worker code: `/auth`, `/callback`, `/stats`, scheduled handler
+- `src/index.js` — Worker code: `/auth`, `/callback`, `/stats`, `/location`, scheduled handler
 - `package.json` — wrangler dev dep only

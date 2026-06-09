@@ -55,6 +55,20 @@ export default {
       });
     }
 
+    if (url.pathname === "/location" && request.method === "POST") {
+      return postLocation(request, url, env, cors);
+    }
+
+    if (url.pathname === "/location") {
+      const latest = await env.RAGBRAI_KV.get("location:latest", "json");
+      const trail = latest
+        ? await env.RAGBRAI_KV.get(`track:${chicagoDate(latest.ts)}`, "json")
+        : null;
+      return new Response(JSON.stringify({ latest: latest || null, trail: trail || [] }), {
+        headers: { "Content-Type": "application/json", ...cors },
+      });
+    }
+
     return new Response("Not found", { status: 404 });
   },
 
@@ -104,10 +118,93 @@ async function refreshStats(env) {
   );
 }
 
+// Accepts either {lat, lng, ts?, acc?} or an Overland batch
+// ({locations: [GeoJSON Feature, ...]}). Auth: Bearer token or ?token=.
+async function postLocation(request, url, env, cors) {
+  if (!env.BEACON_TOKEN) {
+    return new Response(JSON.stringify({ error: "beacon not configured" }), {
+      status: 503, headers: { "Content-Type": "application/json", ...cors },
+    });
+  }
+  const auth = request.headers.get("Authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : url.searchParams.get("token");
+  if (token !== env.BEACON_TOKEN) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), {
+      status: 401, headers: { "Content-Type": "application/json", ...cors },
+    });
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "invalid JSON" }), {
+      status: 400, headers: { "Content-Type": "application/json", ...cors },
+    });
+  }
+
+  const points = [];
+  if (Array.isArray(body.locations)) {
+    for (const f of body.locations) {
+      const c = f?.geometry?.coordinates;
+      if (!Array.isArray(c)) continue;
+      points.push({
+        lat: c[1], lng: c[0],
+        ts: f.properties?.timestamp || new Date().toISOString(),
+        acc: f.properties?.horizontal_accuracy,
+      });
+    }
+  } else {
+    points.push({
+      lat: body.lat, lng: body.lng,
+      ts: body.ts || new Date().toISOString(),
+      acc: body.acc,
+    });
+  }
+
+  const valid = points.filter(p =>
+    Number.isFinite(p.lat) && Number.isFinite(p.lng) &&
+    Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180,
+  );
+  if (valid.length === 0) {
+    return new Response(JSON.stringify({ error: "no valid points" }), {
+      status: 400, headers: { "Content-Type": "application/json", ...cors },
+    });
+  }
+
+  const latest = valid[valid.length - 1];
+  await env.RAGBRAI_KV.put("location:latest", JSON.stringify(latest));
+
+  // Append to today's breadcrumb trail, thinned to one point per 2 min,
+  // capped so a runaway tracker can't grow the value unbounded.
+  const trailKey = `track:${chicagoDate(latest.ts)}`;
+  const trail = (await env.RAGBRAI_KV.get(trailKey, "json")) || [];
+  for (const p of valid) {
+    const prev = trail[trail.length - 1];
+    if (!prev || Math.abs(new Date(p.ts) - new Date(prev.ts)) >= 120 * 1000) {
+      trail.push({ lat: p.lat, lng: p.lng, ts: p.ts });
+    }
+  }
+  await env.RAGBRAI_KV.put(trailKey, JSON.stringify(trail.slice(-600)));
+
+  // Overland expects {"result":"ok"}; harmless for everyone else.
+  return new Response(JSON.stringify({ result: "ok" }), {
+    headers: { "Content-Type": "application/json", ...cors },
+  });
+}
+
+// Ride-day boundary is local Iowa time, not UTC.
+function chicagoDate(ts) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(ts ? new Date(ts) : new Date());
+}
+
 function corsHeaders(env) {
   return {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 }

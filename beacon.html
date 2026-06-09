@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>RAGBRAI Beacon</title>
+  <style>
+    :root {
+      --green: #1f8f3b;
+      --navy: #0a3d62;
+      --bg: #f4f8f5;
+      --card: #ffffff;
+      --muted: #6b7c74;
+      --border: #d6e3da;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: #1a2a22;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+      gap: 1rem;
+    }
+    h1 { font-size: 1.3rem; color: var(--navy); margin: 0.5rem 0 0; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      width: 100%;
+      max-width: 420px;
+    }
+    label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    input[type="password"] {
+      width: 100%;
+      padding: 0.6rem;
+      margin-top: 0.3rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 1rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #checkin { background: var(--green); color: white; }
+    #checkin:active { background: var(--navy); }
+    #checkin:disabled { background: var(--muted); }
+    #auto { background: var(--card); color: var(--navy); border: 2px solid var(--navy); margin-top: 0.6rem; font-size: 0.95rem; padding: 0.7rem; }
+    #auto.on { background: var(--navy); color: white; }
+    #status { font-size: 0.95rem; min-height: 1.4em; }
+    #log { font-size: 0.8rem; color: var(--muted); list-style: none; padding: 0; margin: 0.4rem 0 0; }
+    #log li { padding: 0.15rem 0; border-top: 1px solid var(--border); }
+    .ok { color: var(--green); font-weight: 600; }
+    .err { color: #b3261e; font-weight: 600; }
+    .muted { color: var(--muted); font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <h1>🚲 RAGBRAI Beacon</h1>
+
+  <div class="card">
+    <label for="token">Beacon token</label>
+    <input type="password" id="token" autocomplete="off" placeholder="paste once, it sticks" />
+  </div>
+
+  <div class="card">
+    <button id="checkin">Check in now</button>
+    <button id="auto">Auto check-in: off</button>
+    <p class="muted">Auto posts every 10 minutes while this page is open and on screen. Keep the phone charging if you can.</p>
+  </div>
+
+  <div class="card">
+    <p id="status" class="muted">Ready.</p>
+    <ul id="log"></ul>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const API = window.RAGBRAI_CONFIG && window.RAGBRAI_CONFIG.STATS_API;
+    const tokenEl = document.getElementById("token");
+    const checkinBtn = document.getElementById("checkin");
+    const autoBtn = document.getElementById("auto");
+    const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
+
+    tokenEl.value = localStorage.getItem("beacon_token") || "";
+    tokenEl.addEventListener("change", () => {
+      localStorage.setItem("beacon_token", tokenEl.value.trim());
+    });
+
+    function log(msg, cls) {
+      statusEl.textContent = msg;
+      statusEl.className = cls || "muted";
+      const li = document.createElement("li");
+      li.textContent = `${new Date().toLocaleTimeString()} — ${msg}`;
+      logEl.prepend(li);
+      while (logEl.children.length > 12) logEl.removeChild(logEl.lastChild);
+    }
+
+    function checkIn() {
+      const token = tokenEl.value.trim();
+      if (!API) return log("No API configured in config.js", "err");
+      if (!token) return log("Enter the beacon token first", "err");
+      checkinBtn.disabled = true;
+      statusEl.textContent = "Getting GPS fix…";
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          fetch(`${API}/location`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              acc: pos.coords.accuracy,
+              ts: new Date(pos.timestamp).toISOString(),
+            }),
+          })
+            .then(r => {
+              checkinBtn.disabled = false;
+              if (r.ok) log(`Checked in at ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`, "ok");
+              else if (r.status === 401) log("Bad token — check it and try again", "err");
+              else log(`Server said ${r.status}`, "err");
+            })
+            .catch(() => {
+              checkinBtn.disabled = false;
+              log("No signal — will catch you at the next town", "err");
+            });
+        },
+        err => {
+          checkinBtn.disabled = false;
+          log(`GPS error: ${err.message}`, "err");
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 },
+      );
+    }
+    checkinBtn.addEventListener("click", checkIn);
+
+    // Auto mode: check in every 10 min while the page is open. Wake lock
+    // keeps the screen on (iOS suspends timers when the screen locks).
+    let autoTimer = null;
+    let wakeLock = null;
+    async function setAuto(on) {
+      autoBtn.classList.toggle("on", on);
+      autoBtn.textContent = `Auto check-in: ${on ? "ON" : "off"}`;
+      if (on) {
+        checkIn();
+        autoTimer = setInterval(checkIn, 10 * 60 * 1000);
+        try { wakeLock = await navigator.wakeLock.request("screen"); } catch {}
+      } else {
+        clearInterval(autoTimer);
+        autoTimer = null;
+        try { await wakeLock?.release(); } catch {}
+        wakeLock = null;
+      }
+    }
+    autoBtn.addEventListener("click", () => setAuto(!autoTimer));
+    document.addEventListener("visibilitychange", async () => {
+      if (autoTimer && document.visibilityState === "visible") {
+        try { wakeLock = await navigator.wakeLock.request("screen"); } catch {}
+      }
+    });
+  </script>
+</body>
+</html>
