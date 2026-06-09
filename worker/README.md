@@ -1,6 +1,6 @@
 # RAGBRAI Stats Worker
 
-Cloudflare Worker that pulls Strava club ride totals on a 15-minute cron (`GET /stats`) and stores live ride location (`POST /location` from the phone, `GET /location` for the site).
+Cloudflare Worker that pulls Strava club ride totals on a 15-minute cron (`GET /stats`), stores live ride location (`POST /location` from the phone, `GET /location` for the site), and runs the cheer-wall (`GET`/`POST`/`DELETE /cheers`).
 
 ## What you need before starting
 
@@ -82,6 +82,29 @@ curl -X POST "https://ragbrai-stats.pmcathey.workers.dev/location" \
   -H "Authorization: Bearer <BEACON_TOKEN>" -H "Content-Type: application/json" \
   -d '{"lat": 42.0269, "lng": -96.0975}'
 curl "https://ragbrai-stats.pmcathey.workers.dev/location"
+```
+
+## Cheer wall
+
+Endpoints:
+
+- `GET /cheers` — `{cheers: [{id, name, message, ts}, ...]}` newest-first. Public.
+- `POST /cheers` — body `{name?, message}`. Public, but guarded: name capped at
+  40 chars (defaults to "Mystery fan"), message capped at 280, control chars
+  stripped, slur blocklist (word-exact after leetspeak folding — plain swearing
+  passes), and a 1-cheer-per-IP-per-minute rate limit via KV TTL. Returns
+  `{ok: true, cheer}` or `{error}` with 400/429.
+- `DELETE /cheers?id=<id>` — remove a cheer that slipped past the filter.
+  Auth: `Authorization: Bearer <BEACON_TOKEN>` or `?token=`.
+
+Storage: single KV key `cheers` (JSON array, capped at 200 entries).
+
+Moderation from a laptop:
+
+```bash
+curl "https://ragbrai-stats.pmcathey.workers.dev/cheers"   # find the id
+curl -X DELETE "https://ragbrai-stats.pmcathey.workers.dev/cheers?id=<id>" \
+  -H "Authorization: Bearer <BEACON_TOKEN>"
 ```
 
 ## Troubleshooting

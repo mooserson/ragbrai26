@@ -2,6 +2,10 @@ const STRAVA_OAUTH = "https://www.strava.com/oauth";
 const STRAVA_API = "https://www.strava.com/api/v3";
 const METERS_PER_MILE = 1609.344;
 
+const CHEER_MAX_NAME = 40;
+const CHEER_MAX_MESSAGE = 280;
+const CHEER_WALL_CAP = 200;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -65,6 +69,21 @@ export default {
         ? await env.RAGBRAI_KV.get(`track:${chicagoDate(latest.ts)}`, "json")
         : null;
       return new Response(JSON.stringify({ latest: latest || null, trail: trail || [] }), {
+        headers: { "Content-Type": "application/json", ...cors },
+      });
+    }
+
+    if (url.pathname === "/cheers" && request.method === "POST") {
+      return postCheer(request, env, cors);
+    }
+
+    if (url.pathname === "/cheers" && request.method === "DELETE") {
+      return deleteCheer(request, url, env, cors);
+    }
+
+    if (url.pathname === "/cheers") {
+      const cheers = await env.RAGBRAI_KV.get("cheers", "json");
+      return new Response(JSON.stringify({ cheers: cheers || [] }), {
         headers: { "Content-Type": "application/json", ...cors },
       });
     }
@@ -193,6 +212,85 @@ async function postLocation(request, url, env, cors) {
   });
 }
 
+// Slurs only — regular swearing is on-brand for this team, so the bar is
+// "hateful", not "salty". Word-exact after leetspeak folding, so no
+// Scunthorpe false positives. A determined jerk can still get past this;
+// that's what DELETE /cheers is for.
+const CHEER_BLOCKLIST = [
+  "nigger", "niggers", "nigga", "niggas", "faggot", "faggots", "fag", "fags",
+  "kike", "kikes", "spic", "spics", "chink", "chinks", "tranny", "trannies",
+  "wetback", "wetbacks", "gook", "gooks", "retard", "retards", "rape", "rapist",
+];
+const LEET = { 0: "o", 1: "i", 3: "e", 4: "a", 5: "s", 7: "t", "@": "a", $: "s" };
+
+function isClean(text) {
+  const words = text
+    .toLowerCase()
+    .replace(/[013457@$]/g, c => LEET[c])
+    .split(/[^a-z]+/);
+  return !words.some(w => CHEER_BLOCKLIST.includes(w));
+}
+
+async function postCheer(request, env, cors) {
+  const json = (obj, status = 200) =>
+    new Response(JSON.stringify(obj), {
+      status, headers: { "Content-Type": "application/json", ...cors },
+    });
+
+  // One cheer per IP per minute (KV's minimum TTL) keeps drive-bys polite.
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const rateKey = `cheer-rate:${ip}`;
+  if (await env.RAGBRAI_KV.get(rateKey)) {
+    return json({ error: "Easy, tiger. One zinger a minute." }, 429);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid JSON" }, 400);
+  }
+
+  const clean = v => String(v ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  const name = clean(body.name).slice(0, CHEER_MAX_NAME) || "Mystery fan";
+  const message = clean(body.message);
+  if (!message) return json({ error: "Say something. Anything." }, 400);
+  if (message.length > CHEER_MAX_MESSAGE) {
+    return json({ error: `Keep it under ${CHEER_MAX_MESSAGE} characters.` }, 400);
+  }
+  if (!isClean(name) || !isClean(message)) {
+    return json({ error: "That one's not making the wall." }, 400);
+  }
+
+  const cheer = { id: crypto.randomUUID(), name, message, ts: new Date().toISOString() };
+  const cheers = (await env.RAGBRAI_KV.get("cheers", "json")) || [];
+  cheers.unshift(cheer);
+  await env.RAGBRAI_KV.put("cheers", JSON.stringify(cheers.slice(0, CHEER_WALL_CAP)));
+  await env.RAGBRAI_KV.put(rateKey, "1", { expirationTtl: 60 });
+
+  return json({ ok: true, cheer });
+}
+
+// Zap a cheer that slipped past the filter:
+// DELETE /cheers?id=<id> with Bearer BEACON_TOKEN (or ?token=).
+async function deleteCheer(request, url, env, cors) {
+  const headers = { "Content-Type": "application/json", ...cors };
+  const auth = request.headers.get("Authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : url.searchParams.get("token");
+  if (!env.BEACON_TOKEN || token !== env.BEACON_TOKEN) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers });
+  }
+
+  const id = url.searchParams.get("id");
+  const cheers = (await env.RAGBRAI_KV.get("cheers", "json")) || [];
+  const remaining = cheers.filter(c => c.id !== id);
+  if (remaining.length === cheers.length) {
+    return new Response(JSON.stringify({ error: "no cheer with that id" }), { status: 404, headers });
+  }
+  await env.RAGBRAI_KV.put("cheers", JSON.stringify(remaining));
+  return new Response(JSON.stringify({ ok: true, removed: id }), { headers });
+}
+
 // Ride-day boundary is local Iowa time, not UTC.
 function chicagoDate(ts) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -204,7 +302,7 @@ function chicagoDate(ts) {
 function corsHeaders(env) {
   return {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   };
 }

@@ -335,6 +335,100 @@ if (statsApi) {
   setInterval(pollLive, 60 * 1000);
 }
 
+// --- Donate button ---
+const donateBtn = document.getElementById("donate-button");
+const donateUrl = window.RAGBRAI_CONFIG && window.RAGBRAI_CONFIG.DONATE_URL;
+if (donateUrl) {
+  donateBtn.href = donateUrl;
+} else {
+  donateBtn.removeAttribute("href");
+  donateBtn.classList.add("disabled");
+  donateBtn.textContent = "Donate — link drops soon";
+}
+
+// --- Wall of zingers ---
+const cheerWall = document.getElementById("cheer-wall");
+const cheerForm = document.getElementById("cheer-form");
+const cheerNameEl = document.getElementById("cheer-name");
+const cheerMessageEl = document.getElementById("cheer-message");
+const cheerCountEl = document.getElementById("cheer-count");
+const cheerStatusEl = document.getElementById("cheer-status");
+const cheerSubmitEl = document.getElementById("cheer-submit");
+const CHEER_MAX = 280;
+let wallCheers = [];
+
+// Cheers are user-submitted — build DOM with textContent, never innerHTML.
+function renderCheerCard(c) {
+  const div = document.createElement("div");
+  div.className = "cheer";
+  const p = document.createElement("p");
+  p.textContent = `“${c.message}”`;
+  const footer = document.createElement("footer");
+  const who = document.createElement("span");
+  who.className = "cheer-who";
+  who.textContent = `— ${c.name}`;
+  const when = document.createElement("span");
+  when.textContent = timeAgo(c.ts);
+  footer.append(who, when);
+  div.append(p, footer);
+  return div;
+}
+
+function renderWall() {
+  if (wallCheers.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "muted small";
+    empty.textContent = "No zingers yet — be the first to talk smack.";
+    cheerWall.replaceChildren(empty);
+    return;
+  }
+  cheerWall.replaceChildren(...wallCheers.map(renderCheerCard));
+}
+
+if (statsApi) {
+  fetch(`${statsApi}/cheers`)
+    .then(r => r.json())
+    .then(d => {
+      wallCheers = d.cheers || [];
+      renderWall();
+    })
+    .catch(() => {
+      cheerStatusEl.textContent = "Wall's not loading — try a refresh.";
+    });
+}
+
+cheerNameEl.value = localStorage.getItem("cheer-name") || "";
+cheerMessageEl.addEventListener("input", () => {
+  cheerCountEl.textContent = CHEER_MAX - cheerMessageEl.value.length;
+});
+
+cheerForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const message = cheerMessageEl.value.trim();
+  if (!message || !statsApi) return;
+  cheerSubmitEl.disabled = true;
+  cheerStatusEl.textContent = "";
+  try {
+    const res = await fetch(`${statsApi}/cheers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: cheerNameEl.value.trim(), message }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Something flatted. Try again.");
+    localStorage.setItem("cheer-name", cheerNameEl.value.trim());
+    cheerMessageEl.value = "";
+    cheerCountEl.textContent = CHEER_MAX;
+    wallCheers.unshift(data.cheer);
+    renderWall();
+    cheerStatusEl.textContent = "Posted. The peloton thanks you.";
+  } catch (err) {
+    cheerStatusEl.textContent = err.message;
+  } finally {
+    cheerSubmitEl.disabled = false;
+  }
+});
+
 function syncFromMap(idx) {
   showHoverAt(idx);
   const meta = elevationChart.getDatasetMeta(0);

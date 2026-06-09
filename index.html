@@ -55,7 +55,9 @@
       </div>
       <div class="card">
         <h2>Pay to play</h2>
-        <p class="muted">Donation + wall of zingers coming soon.</p>
+        <p class="muted small">We pedal 391 miles. You donate to a Chicago youth-bike nonprofit (name reveal soon). That's the deal.</p>
+        <a class="button" id="donate-button" href="#" target="_blank" rel="noopener noreferrer">Donate →</a>
+        <p class="muted small"><a class="text-link" href="#zinger-section">Then drop a zinger on the wall ↓</a></p>
       </div>
     </aside>
 
@@ -63,6 +65,21 @@
       <h2>Elevation profile</h2>
       <div class="chart-wrap"><canvas id="elevation-chart"></canvas></div>
       <p class="muted small">Approximate town elevations — refines when the official GPX is published.</p>
+    </section>
+
+    <section id="zinger-section">
+      <h2>Wall of zingers</h2>
+      <p class="muted small">Cheer us on or roast us gently — it shows up here for the whole peloton to see.</p>
+      <form id="cheer-form">
+        <input id="cheer-name" type="text" maxlength="40" placeholder="Your name" autocomplete="name" aria-label="Your name" />
+        <div class="cheer-message-wrap">
+          <textarea id="cheer-message" maxlength="280" rows="2" placeholder="Keep it short. Make it sting." aria-label="Your message" required></textarea>
+          <span id="cheer-count" class="muted small" aria-hidden="true">280</span>
+        </div>
+        <button type="submit" class="button" id="cheer-submit">Post it</button>
+      </form>
+      <p id="cheer-status" class="muted small" role="status"></p>
+      <div id="cheer-wall"></div>
     </section>
   </main>
 

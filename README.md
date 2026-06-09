@@ -32,7 +32,7 @@ If `route.geojson` is missing the map falls back to straight town-to-town lines.
 2. ~~Photo gallery (Google Photos shared album link)~~ ✅
 3. ~~Live "last seen" dot — phone POSTs `{lat, lng, ts}` to the Worker~~ ✅
 4. ~~Strava Club widget for training miles~~ ✅
-5. Donate button + cheer-wall
+5. ~~Donate button + cheer-wall~~ ✅
 
 ## Live location
 
@@ -52,6 +52,18 @@ Two ways to feed it from the road:
 
 Setup: `npx wrangler secret put BEACON_TOKEN` in `worker/`, then deploy. See
 `worker/README.md`.
+
+## Donate + wall of zingers
+
+The "Pay to play" sidebar card links to a Donorbox campaign — set `DONATE_URL`
+in `config.js` once the charity (a Chicago youth-bike org, TBD) is locked in;
+until then the button shows a "coming soon" state.
+
+The wall of zingers is a public cheer-wall: name + message (280 chars max)
+POSTed to the Worker, stored in KV, rendered newest-first. Abuse guards: per-IP
+rate limit (1/min), slur blocklist (plain swearing is allowed — have you met
+this team?), and an authed `DELETE /cheers?id=` for anything that slips
+through. See `worker/README.md`.
 
 ## Run locally
 
