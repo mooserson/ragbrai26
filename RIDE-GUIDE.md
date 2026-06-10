@@ -74,10 +74,12 @@ ragbrai-stats → Edit code → Deploy). Clunky on mobile but it works.
 
 ## Before Onawa (one-time, laptop required) ☐
 
-1. ☐ Review + commit + push the pending batch (live location, route, cheers)
-2. ☐ Deploy worker: `cd worker && npx wrangler login && npx wrangler secret put BEACON_TOKEN && npx wrangler deploy` (make the token with `openssl rand -hex 16`)
+1. ✅ ~~Review + commit + push the pending batch~~ (live June 9: site, live location, route line, cheer wall)
+2. ☐ Deploy worker: `cd worker && npx wrangler login && npx wrangler secret put BEACON_TOKEN && npx wrangler deploy` (make the token with `openssl rand -hex 16`). Until this runs, the live dot stays dark and the zinger wall says "not loading."
 3. ☐ Put the token in both phones' password managers / team notes
 4. ☐ Both phones: install Overland → Settings → Receiver Endpoint URL = `https://ragbrai-stats.pmcathey.workers.dev/location?token=<TOKEN>` — or do a beacon.html check-in once so the token is saved
 5. ☐ iOS Shortcut "Delete Cheer" (optional): Get Contents of URL → `https://ragbrai-stats.pmcathey.workers.dev/cheers?id=[Ask Each Time]`, Method DELETE, Header `Authorization: Bearer <TOKEN>`
 6. ☐ **Dress rehearsal on a June training ride** — full loop: track, see the dot move, save to Strava, watch miles bump. Don't debut this in Onawa.
-7. ☐ When official route files drop (watcher will ping): review, commit, push
+7. ☐ Pick the charity (Chicago youth-bike org, TBD) → create the Donorbox campaign → set `DONATE_URL` in `config.js` (a one-line GitHub web edit; button flips on by itself)
+8. ☐ When official route files drop (the daily 9am watcher will ping): review the regenerated `route.geojson`, commit, push
+9. ☐ Someday-maybe: upgrade wrangler v3 → v4 in `worker/` (deprecation warning, nothing broken); real elevation profile from track points instead of town dots

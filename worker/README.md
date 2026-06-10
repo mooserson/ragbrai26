@@ -54,7 +54,7 @@ Open `https://ragbrai-stats.<your-subdomain>.workers.dev/auth` in your browser. 
 
 Visit `https://ragbrai-stats.<your-subdomain>.workers.dev/stats` to confirm — should return JSON with `total_miles`.
 
-The cron now runs every 6 hours. Force a refresh by hitting `/auth` again, or just wait.
+The cron now runs every 15 minutes. Force a refresh by hitting `/auth` again, or just wait.
 
 ## Live location
 
