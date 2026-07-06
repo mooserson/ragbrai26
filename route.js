@@ -1,12 +1,8 @@
 // Precise route track data for RAGBRAI LIII (July 18-25, 2026).
-// Source: Official Ride with GPS routes published on ragbrai.com/route/day-N/ (all 7 days now available as of 2026-07-06).
-//   Day 1 bike route: https://ridewithgps.com/routes/52552341?privacy_code=rzMmVDYbfrgopR78C7R9FyG3itb4LPVn
-//   Day 2 bike route: https://ridewithgps.com/routes/52552375?privacy_code=FRpnfjya9RlZb7WjaHg0JQy6rObDeBEY
-//   Day 3 bike route: https://ridewithgps.com/routes/52552461?privacy_code=siMgJC7u0QOS2mLeURW222ewmi1hjyB7
-//   Day 4 bike route: https://ridewithgps.com/routes/52552995?privacy_code=e9HWjz1EqKHEqy1Qpxzq4UzGeRes8SMk
-//   Day 5 bike route: https://ridewithgps.com/routes/54280069?privacy_code=fPwc5KW2L4kBlLXd2SdzowuTdugh7myC
-//   Day 6 bike route: https://ridewithgps.com/routes/52553404?privacy_code=ArZWwqeunGMLoxef49FTw2mB3lU1tI0S
-//   Day 7 bike route: https://ridewithgps.com/routes/52553679?privacy_code=zG6JJ7GZm79YVjY8rniEURQL8lKHEGNX
+// Source: Official RAGBRAI Ride with GPS event — https://ridewithgps.com/events/400784
+//   Route IDs (main/paved routes only — gravel variants excluded):
+//   Day 1: 52552341  Day 2: 52552375  Day 3: 52552461  Day 4: 52552995
+//   Day 5: 54280069  Day 6: 52553404  Day 7: 52553679
 // Points are sampled every 10th GPS fix from the source GPX track (original density ~80 ft/point).
 // kind: "overnight" | "meeting" | "pass" | "special"
 

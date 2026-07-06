@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Pull RAGBRAI LIII day routes from Ride with GPS and write ../route.geojson.
 
-Source: community-maintained draft event (ridewithgps.com/events/455076,
-"98% accurate", updated as RAGBRAI releases info). When the official RAGBRAI
-org (ridewithgps.com/organizations/10298-ragbrai) publishes LIII routes,
-swap the IDs below and re-run:
+Source: official RAGBRAI org event — ridewithgps.com/events/400784
+Route IDs come from the event JSON: curl https://ridewithgps.com/events/400784.json
+Re-run whenever RAGBRAI publishes updated tracks:
 
     python3 tools/fetch_routes.py
 """
@@ -13,16 +12,17 @@ import json
 import urllib.request
 from pathlib import Path
 
-# Day -> Ride with GPS route id, in ride order. Main routes only
-# (Karras Loop / America 250K Day 5 variants left out on purpose).
+# Day -> Ride with GPS route id, in ride order. Main (paved) routes only —
+# gravel variants, Karras Loop, and America 250K (Day 5) excluded on purpose.
+# Source: ridewithgps.com/events/400784 (official RAGBRAI LIII event, user_id 5640870).
 ROUTE_IDS = {
-    1: 53825182,  # Onawa -> Harlan
-    2: 53825289,  # Harlan -> Guthrie Center
-    3: 53825299,  # Guthrie Center -> Boone
-    4: 53825305,  # Boone -> Marshalltown
-    5: 53825311,  # Marshalltown -> Independence
-    6: 53825317,  # Independence -> Dyersville
-    7: 53825325,  # Dyersville -> Dubuque
+    1: 52552341,  # Onawa -> Harlan
+    2: 52552375,  # Harlan -> Guthrie Center
+    3: 52552461,  # Guthrie Center -> Boone
+    4: 52552995,  # Boone -> Marshalltown
+    5: 54280069,  # Marshalltown -> Independence
+    6: 52553404,  # Independence -> Dyersville
+    7: 52553679,  # Dyersville -> Dubuque
 }
 
 OUT = Path(__file__).resolve().parent.parent / "route.geojson"
