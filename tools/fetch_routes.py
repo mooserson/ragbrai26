@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """Pull RAGBRAI LIII day routes from Ride with GPS and write ../route.geojson.
 
-Source: community-maintained draft event (ridewithgps.com/events/455076,
-"98% accurate", updated as RAGBRAI releases info). When the official RAGBRAI
-org (ridewithgps.com/organizations/10298-ragbrai) publishes LIII routes,
-swap the IDs below and re-run:
+Source: the official RAGBRAI routes published on ragbrai.com/route/day-N/
+(each day page links its Ride with GPS routes). Every day has a paved main
+"Bike Route" and a "Bike Route w/Gravel"; Day 5 additionally has the Karras
+Loop and the America 250 Double Loop.
+
+The main route is the primary line on the map; gravel and the Day-5 specials
+render as flip-on overlays (see app.js). Each feature is tagged with a
+`variant` property so app.js can tell them apart.
+
+Re-run whenever RAGBRAI updates a route (swap the id below and run):
 
     python3 tools/fetch_routes.py
 """
@@ -13,16 +19,28 @@ import json
 import urllib.request
 from pathlib import Path
 
-# Day -> Ride with GPS route id, in ride order. Main routes only
-# (Karras Loop / America 250K Day 5 variants left out on purpose).
-ROUTE_IDS = {
-    1: 53825182,  # Onawa -> Harlan
-    2: 53825289,  # Harlan -> Guthrie Center
-    3: 53825299,  # Guthrie Center -> Boone
-    4: 53825305,  # Boone -> Marshalltown
-    5: 53825311,  # Marshalltown -> Independence
-    6: 53825317,  # Independence -> Dyersville
-    7: 53825325,  # Dyersville -> Dubuque
+# Day -> {variant: Ride with GPS route id}, in ride order.
+#   main       : official paved "Bike Route" (the primary green line)
+#   gravel     : official "Bike Route w/Gravel"
+#   karras     : Day 5 Karras Loop (century option)
+#   america250 : Day 5 America 250 Double Loop (250 km)
+ROUTES = {
+    1: {"main": 52552341, "gravel": 54177776},
+    2: {"main": 52552375, "gravel": 54177810},
+    3: {"main": 52552461, "gravel": 54177890},
+    4: {"main": 52552995, "gravel": 54177916},
+    5: {"main": 54280069, "gravel": 54177936,
+        "karras": 52955653, "america250": 52955775},
+    6: {"main": 52553404, "gravel": 54177948},
+    7: {"main": 52553679, "gravel": 54177956},
+}
+
+# Legend / tooltip labels per variant.
+VARIANT_LABEL = {
+    "main": "Bike Route",
+    "gravel": "Gravel option",
+    "karras": "Karras Loop",
+    "america250": "America 250 Double Loop",
 }
 
 OUT = Path(__file__).resolve().parent.parent / "route.geojson"
@@ -41,31 +59,36 @@ def fetch_route(route_id):
 
 def main():
     features = []
-    total_miles = 0.0
-    for day, route_id in ROUTE_IDS.items():
-        route = fetch_route(route_id)
-        pts = route["track_points"]
-        coords = []
-        for p in pts:
-            c = [round(p["x"], 5), round(p["y"], 5)]
-            if not coords or coords[-1] != c:
-                coords.append(c)
-        miles = pts[-1]["d"] / METERS_PER_MILE
-        total_miles += miles
-        features.append({
-            "type": "Feature",
-            "properties": {
-                "day": day,
-                "rwgps_id": route_id,
-                "name": route["name"],
-                "miles": round(miles, 1),
-            },
-            "geometry": {"type": "LineString", "coordinates": coords},
-        })
-        print(f"day {day}: {miles:6.1f} mi, {len(coords):5d} pts  ({route['name'][:60]})")
+    main_total = 0.0
+    for day, variants in ROUTES.items():
+        for variant, route_id in variants.items():
+            route = fetch_route(route_id)
+            pts = route["track_points"]
+            coords = []
+            for p in pts:
+                c = [round(p["x"], 5), round(p["y"], 5)]
+                if not coords or coords[-1] != c:
+                    coords.append(c)
+            miles = pts[-1]["d"] / METERS_PER_MILE
+            if variant == "main":
+                main_total += miles
+            features.append({
+                "type": "Feature",
+                "properties": {
+                    "day": day,
+                    "variant": variant,
+                    "label": VARIANT_LABEL.get(variant, variant),
+                    "rwgps_id": route_id,
+                    "name": route["name"],
+                    "miles": round(miles, 1),
+                },
+                "geometry": {"type": "LineString", "coordinates": coords},
+            })
+            print(f"day {day} {variant:11s}: {miles:6.1f} mi, {len(coords):5d} pts  "
+                  f"({route['name'][:48]})")
 
     OUT.write_text(json.dumps({"type": "FeatureCollection", "features": features}))
-    print(f"total: {total_miles:.1f} mi -> {OUT.name} ({OUT.stat().st_size // 1024} KB)")
+    print(f"main total: {main_total:.1f} mi -> {OUT.name} ({OUT.stat().st_size // 1024} KB)")
 
 
 if __name__ == "__main__":
