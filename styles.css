@@ -120,6 +120,35 @@ main {
 .dot.special   { background: #ff5ec4; border: 2px solid #7a0a4a; }
 .dot.live      { background: #ff3b3b; border: 2px solid #800; }
 
+.route-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.route-toggles-label { font-weight: 600; }
+/* Each toggle stays hidden until app.js confirms its route exists in route.geojson. */
+.route-toggle {
+  display: none;
+  align-items: center;
+  gap: 0.35em;
+  cursor: pointer;
+}
+.route-toggle input { margin: 0; cursor: pointer; }
+.route-toggle .line {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  border-top: 3px solid #666;
+  vertical-align: middle;
+}
+.line.gravel     { border-top-style: dashed; border-top-color: #b8860b; }
+.line.karras     { border-top-color: #7a0a4a; }
+.line.america250 { border-top-color: #0a5ca8; }
+
 #sidebar {
   display: flex;
   flex-direction: column;
