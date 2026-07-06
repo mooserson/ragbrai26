@@ -123,15 +123,49 @@ async function refreshStats(env) {
   const activities = await activitiesRes.json();
   if (!Array.isArray(activities)) return;
 
-  const rideMeters = activities
-    .filter(a => a.type === "Ride" || a.sport_type === "Ride")
-    .reduce((sum, a) => sum + (a.distance || 0), 0);
+  // Strava's club-activities feed is a ROLLING WINDOW of only the most recent
+  // activities — not the club's cumulative history — and its entries carry no
+  // activity id or timestamp. Summing the window each run makes the total shrink
+  // as older rides age out. So instead we accumulate: keep a persisted running
+  // total plus a set of already-counted activity signatures, and only add rides
+  // we haven't seen before. Signature = the only distinguishing fields the feed
+  // exposes (athlete name + distance + moving time), so a rare exact collision
+  // undercounts by one ride — fine for a hype counter.
+  const rides = activities.filter(a => a.type === "Ride" || a.sport_type === "Ride");
+  const sig = a =>
+    `${a.athlete?.firstname || ""} ${a.athlete?.lastname || ""}|${Math.round(a.distance || 0)}|${a.moving_time || 0}`;
+
+  const acc = (await env.RAGBRAI_KV.get("stats_acc", "json"))
+    || { meters: 0, count: 0, seen: [], initialized: false };
+  const seen = new Set(acc.seen);
+
+  // First run only records what's already in the window (no count) so the live
+  // total starts from the baseline below and grows from genuinely new rides —
+  // rides already in the window at launch are covered by the baseline.
+  const firstRun = !acc.initialized;
+  for (const a of rides) {
+    const s = sig(a);
+    if (seen.has(s)) continue;
+    seen.add(s);
+    if (!firstRun) { acc.meters += a.distance || 0; acc.count += 1; }
+  }
+  acc.initialized = true;
+  // Cap the signature list so the KV value can't grow unbounded over a long
+  // season; newest entries (the only ones that can reappear in the window) win.
+  acc.seen = [...seen].slice(-5000);
+  await env.RAGBRAI_KV.put("stats_acc", JSON.stringify(acc));
+
+  // Miles/rides that predate this accumulator (Strava can't re-serve aged-out
+  // club activities). Set in wrangler.toml; added on top of the live total and
+  // adjustable anytime without disturbing the accumulator.
+  const baseMiles = Number(env.STATS_BASELINE_MILES) || 0;
+  const baseRides = Number(env.STATS_BASELINE_RIDES) || 0;
 
   await env.RAGBRAI_KV.put(
     "stats",
     JSON.stringify({
-      total_miles: Math.round((rideMeters / METERS_PER_MILE) * 10) / 10,
-      ride_count: activities.filter(a => a.type === "Ride" || a.sport_type === "Ride").length,
+      total_miles: Math.round((baseMiles + acc.meters / METERS_PER_MILE) * 10) / 10,
+      ride_count: baseRides + acc.count,
       updated_at: new Date().toISOString(),
     }),
   );
