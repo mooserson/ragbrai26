@@ -397,6 +397,38 @@ if (donateUrl) {
   donateBtn.textContent = "Donate — link drops soon";
 }
 
+// --- Photo strip: six random shots from the shared album ---
+const photoStrip = document.getElementById("photo-strip");
+if (statsApi && photoStrip) {
+  const albumUrl = photoStrip.parentElement.querySelector("a.button").href;
+  fetch(`${statsApi}/photos`)
+    .then(r => r.json())
+    .then(d => {
+      const urls = (d.photos || []).slice();
+      for (let i = urls.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [urls[i], urls[j]] = [urls[j], urls[i]];
+      }
+      const picks = urls.slice(0, 6);
+      if (picks.length === 0) return;
+      photoStrip.replaceChildren(...picks.map(u => {
+        const a = document.createElement("a");
+        a.href = albumUrl;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        const img = document.createElement("img");
+        // lh3 sizing suffix: 320px square, server-side cropped
+        img.src = `${u}=w320-h320-c`;
+        img.alt = "Photo from the team album";
+        img.loading = "lazy";
+        a.append(img);
+        return a;
+      }));
+      photoStrip.hidden = false;
+    })
+    .catch(() => {});
+}
+
 // --- Wall of zingers ---
 const cheerWall = document.getElementById("cheer-wall");
 const cheerForm = document.getElementById("cheer-form");

@@ -6,6 +6,9 @@ const CHEER_MAX_NAME = 40;
 const CHEER_MAX_MESSAGE = 280;
 const CHEER_WALL_CAP = 200;
 
+const PHOTOS_TTL_MS = 60 * 60 * 1000;
+const PHOTOS_MAX = 60;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -71,6 +74,10 @@ export default {
       return new Response(JSON.stringify({ latest: latest || null, trail: trail || [] }), {
         headers: { "Content-Type": "application/json", ...cors },
       });
+    }
+
+    if (url.pathname === "/photos") {
+      return getPhotos(env, cors);
     }
 
     if (url.pathname === "/cheers" && request.method === "POST") {
@@ -244,6 +251,38 @@ async function postLocation(request, url, env, cors) {
   return new Response(JSON.stringify({ result: "ok" }), {
     headers: { "Content-Type": "application/json", ...cors },
   });
+}
+
+// Photo CDN links for the site's thumbnail strip. The Photos Library API
+// can't read albums the app didn't create (Google removed the readonly scope
+// in March 2025), so we scrape the public share page for lh3 URLs instead and
+// cache them for an hour. If Google changes the page markup the scrape yields
+// nothing — we keep serving the last good list, and the site hides the strip
+// if that's empty too.
+async function getPhotos(env, cors) {
+  const headers = { "Content-Type": "application/json", ...cors };
+  const cached = (await env.RAGBRAI_KV.get("photos", "json")) || { urls: [], fetched_at: 0 };
+
+  if (Date.now() - cached.fetched_at >= PHOTOS_TTL_MS && env.PHOTOS_ALBUM_URL) {
+    try {
+      const res = await fetch(env.PHOTOS_ALBUM_URL, { redirect: "follow" });
+      const html = await res.text();
+      const seen = new Set();
+      for (const m of html.matchAll(/https:\/\/lh3\.googleusercontent\.com\/pw\/[A-Za-z0-9_-]+/g)) {
+        seen.add(m[0]);
+        if (seen.size >= PHOTOS_MAX) break;
+      }
+      if (seen.size > 0) {
+        cached.urls = [...seen];
+        cached.fetched_at = Date.now();
+        await env.RAGBRAI_KV.put("photos", JSON.stringify(cached));
+      }
+    } catch {
+      // keep serving the stale list
+    }
+  }
+
+  return new Response(JSON.stringify({ photos: cached.urls }), { headers });
 }
 
 // Slurs only — regular swearing is on-brand for this team, so the bar is

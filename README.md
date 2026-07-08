@@ -55,9 +55,10 @@ Setup: `npx wrangler secret put BEACON_TOKEN` in `worker/`, then deploy. See
 
 ## Donate + wall of zingers
 
-The "Pay to play" sidebar card links to a Donorbox campaign — set `DONATE_URL`
-in `config.js` once the charity (a Chicago youth-bike org, TBD) is locked in;
-until then the button shows a "coming soon" state.
+The "Pay to play" sidebar card's Donate button goes to
+[The Recyclery](https://www.therecyclery.org/) (volunteer-run teaching bike
+shop in Rogers Park, Chicago) via `DONATE_URL` in `config.js`. If `DONATE_URL`
+is ever unset the button falls back to a "coming soon" state.
 
 The wall of zingers is a public cheer-wall: name + message (280 chars max)
 POSTed to the Worker, stored in KV, rendered newest-first. Abuse guards: per-IP

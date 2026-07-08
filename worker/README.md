@@ -120,6 +120,18 @@ curl -X DELETE "https://ragbrai-stats.pmcathey.workers.dev/cheers?id=<id>" \
   -H "Authorization: Bearer <BEACON_TOKEN>"
 ```
 
+## Photos
+
+- `GET /photos` — `{photos: ["https://lh3.googleusercontent.com/pw/...", ...]}`.
+  Public. Scrapes the shared Google Photos album (`PHOTOS_ALBUM_URL` in
+  `wrangler.toml`) for image CDN links, cached in KV key `photos` for an hour.
+  The Photos Library API can't read albums the app didn't create (Google
+  removed the readonly scope in March 2025), hence the scrape. If Google
+  changes the share-page markup the scrape yields nothing and the endpoint
+  keeps serving the last good list; the site hides its thumbnail strip if the
+  list is empty. Append an lh3 sizing suffix to render (e.g. `=w320-h320-c`
+  for a 320px cropped square).
+
 ## Troubleshooting
 
 - **`OAuth failed`** in the callback: usually a Client Secret mismatch or wrong callback domain in Strava settings.
