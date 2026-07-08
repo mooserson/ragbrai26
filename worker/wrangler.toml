@@ -16,7 +16,7 @@ REDIRECT_URI = "https://ragbrai-stats.pmcathey.workers.dev/callback"
 # Set to today's true totals when you deploy; adjust anytime (added on top of the
 # live count, so changing them never disturbs the accumulator).
 STATS_BASELINE_MILES = "730.42"
-STATS_BASELINE_RIDES = "9"
+STATS_BASELINE_RIDES = "42"
 
 # Secrets — set via `wrangler secret put <NAME>` (never committed):
 #   STRAVA_CLIENT_SECRET — from strava.com/settings/api
