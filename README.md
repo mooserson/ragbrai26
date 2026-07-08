@@ -13,12 +13,12 @@ Friends-and-family follow-along site for RAGBRAI LIII (July 18–25, 2026), Onaw
 
 Route + elevation render, Google Photos album link, Strava training miles, and live "last seen" tracking.
 
-The map line comes from `route.geojson` — real road geometry pulled from a
-community-maintained Ride with GPS draft of the LIII route ("98% accurate",
-[event 455076](https://ridewithgps.com/events/455076)). Town waypoints and the
-elevation chart still come from `route.js`. When RAGBRAI's official org
-([ridewithgps.com/organizations/10298](https://ridewithgps.com/organizations/10298-ragbrai))
-posts the final LIII routes, swap the IDs in `tools/fetch_routes.py` and:
+The map line comes from `route.geojson` — real road geometry pulled from the
+official RAGBRAI Ride with GPS routes for all 7 days. The main paved route is
+the primary line; each day's gravel option, plus Day 5's Karras Loop and
+America 250 Double Loop, ride along as flip-on overlays ("Show also" in the map
+legend). Town waypoints and the elevation chart come from `route.js`. When
+RAGBRAI updates a route, swap the id in `tools/fetch_routes.py` and re-run:
 
 ```
 python3 tools/fetch_routes.py
