@@ -62,7 +62,9 @@ export default {
       });
     }
 
-    if (url.pathname === "/location" && request.method === "POST") {
+    // Traccar/OsmAnd-style check-ins put coords in the query string (some
+    // client versions GET rather than POST), so route on params too.
+    if (url.pathname === "/location" && (request.method === "POST" || url.searchParams.has("lat"))) {
       return postLocation(request, url, env, cors);
     }
 
@@ -178,8 +180,11 @@ async function refreshStats(env) {
   );
 }
 
-// Accepts either {lat, lng, ts?, acc?} or an Overland batch
-// ({locations: [GeoJSON Feature, ...]}). Auth: Bearer token or ?token=.
+// Accepts {lat, lng, ts?, acc?}, an Overland batch
+// ({locations: [GeoJSON Feature, ...]}), or Traccar/OsmAnd-style query params
+// (?lat=&lon=&timestamp=&accuracy=). Auth: Bearer token, ?token=, or — for
+// Traccar, which has no custom-header/URL-query support — the device
+// identifier it always sends as ?id=.
 async function postLocation(request, url, env, cors) {
   if (!env.BEACON_TOKEN) {
     return new Response(JSON.stringify({ error: "beacon not configured" }), {
@@ -187,11 +192,28 @@ async function postLocation(request, url, env, cors) {
     });
   }
   const auth = request.headers.get("Authorization") || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : url.searchParams.get("token");
+  const token = auth.startsWith("Bearer ")
+    ? auth.slice(7)
+    : url.searchParams.get("token") || url.searchParams.get("id");
   if (token !== env.BEACON_TOKEN) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401, headers: { "Content-Type": "application/json", ...cors },
     });
+  }
+
+  const points = [];
+  if (url.searchParams.has("lat") && url.searchParams.has("lon")) {
+    // Traccar sends epoch seconds; tolerate millis and missing.
+    const n = Number(url.searchParams.get("timestamp"));
+    points.push({
+      lat: Number(url.searchParams.get("lat")),
+      lng: Number(url.searchParams.get("lon")),
+      ts: Number.isFinite(n) && n > 0
+        ? new Date(n < 1e12 ? n * 1000 : n).toISOString()
+        : new Date().toISOString(),
+      acc: Number(url.searchParams.get("accuracy")) || undefined,
+    });
+    return storePoints(points, env, cors);
   }
 
   let body;
@@ -203,7 +225,6 @@ async function postLocation(request, url, env, cors) {
     });
   }
 
-  const points = [];
   if (Array.isArray(body.locations)) {
     for (const f of body.locations) {
       const c = f?.geometry?.coordinates;
@@ -222,6 +243,10 @@ async function postLocation(request, url, env, cors) {
     });
   }
 
+  return storePoints(points, env, cors);
+}
+
+async function storePoints(points, env, cors) {
   const valid = points.filter(p =>
     Number.isFinite(p.lat) && Number.isFinite(p.lng) &&
     Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180,

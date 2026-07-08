@@ -74,7 +74,8 @@ These are added on top of the live count and can be adjusted anytime without dis
 Endpoints:
 
 - `POST /location` — body `{lat, lng, ts?, acc?}` or an [Overland](https://overland.p3k.app/) batch (`{locations: [...]}`). Auth: `Authorization: Bearer <BEACON_TOKEN>` header or `?token=<BEACON_TOKEN>` query param. Stores the latest fix plus a per-day breadcrumb trail (thinned to 1 point / 2 min, capped at 600 points, day boundary = America/Chicago).
-- `GET /location` — `{latest: {lat, lng, ts, acc}, trail: [{lat, lng, ts}, ...]}` for the latest fix's ride day. Public, no auth.
+- `GET|POST /location?lat=&lon=&timestamp=&accuracy=` — Traccar/OsmAnd-style check-in, params in the query string (`timestamp` = epoch seconds or millis, optional). Auth: `?token=` or — since Traccar can't set custom URLs params or headers — the `?id=` device identifier it always sends. Same storage as above.
+- `GET /location` (no coord params) — `{latest: {lat, lng, ts, acc}, trail: [{lat, lng, ts}, ...]}` for the latest fix's ride day. Public, no auth.
 
 Setup:
 
@@ -86,7 +87,8 @@ npx wrangler deploy
 Generate a token with e.g. `openssl rand -hex 16`. Senders:
 
 - `beacon.html` on the site — paste the token once (saved in localStorage), then manual or 10-min auto check-ins.
-- Overland app — set Receiver URL to `https://ragbrai-stats.pmcathey.workers.dev/location?token=<BEACON_TOKEN>`.
+- Overland app (iOS; the Android build is delisted from Google Play) — set Receiver URL to `https://ragbrai-stats.pmcathey.workers.dev/location?token=<BEACON_TOKEN>`.
+- [Traccar Client](https://play.google.com/store/apps/details?id=org.traccar.client) (Android) — server URL `https://ragbrai-stats.pmcathey.workers.dev/location`, device identifier = the beacon token.
 
 Test from a laptop:
 
