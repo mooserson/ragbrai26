@@ -10,6 +10,13 @@ ALLOWED_ORIGIN = "https://paulcathey.com"
 # REDIRECT_URI: filled in after first `wrangler deploy` prints your *.workers.dev URL.
 # Set to "<workers-url>/callback".
 REDIRECT_URI = "https://ragbrai-stats.pmcathey.workers.dev/callback"
+# Club ride totals from before the accumulating counter went live. Strava's club
+# feed only exposes a rolling recent window, so miles that aged out before this
+# can't be re-fetched — seed them here and the live counter grows from these.
+# Set to today's true totals when you deploy; adjust anytime (added on top of the
+# live count, so changing them never disturbs the accumulator).
+STATS_BASELINE_MILES = "730.42"
+STATS_BASELINE_RIDES = "42"
 
 # Secrets — set via `wrangler secret put <NAME>` (never committed):
 #   STRAVA_CLIENT_SECRET — from strava.com/settings/api

@@ -56,6 +56,19 @@ Visit `https://ragbrai-stats.<your-subdomain>.workers.dev/stats` to confirm — 
 
 The cron now runs every 15 minutes. Force a refresh by hitting `/auth` again, or just wait.
 
+### How the total is counted (and the baseline)
+
+Strava's club-activities feed returns only a **rolling window of recent activities**, not the club's full history, and the entries have no activity id or timestamp. So the cron **accumulates**: it keeps a running total in KV (`stats_acc`) plus a set of already-counted activity signatures (athlete name + distance + moving time) and only adds rides it hasn't seen before. The number only ever grows — it can't drop as old rides age out of the window.
+
+The **first** cron after deploy just records what's already in the window (without counting it), so the live total starts from the baseline and grows from genuinely new rides. Miles/rides from before that can't be re-fetched from Strava, so seed them once in `wrangler.toml`:
+
+```toml
+STATS_BASELINE_MILES = "1234.5"   # today's true club ride miles
+STATS_BASELINE_RIDES = "87"       # today's true club ride count
+```
+
+These are added on top of the live count and can be adjusted anytime without disturbing the accumulator. To reset the running count entirely, delete the `stats_acc` KV key.
+
 ## Live location
 
 Endpoints:

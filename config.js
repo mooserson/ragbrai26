@@ -2,7 +2,5 @@
 // e.g. "https://ragbrai-stats.<your-subdomain>.workers.dev"
 window.RAGBRAI_CONFIG = {
   STATS_API: "https://ragbrai-stats.pmcathey.workers.dev",
-  // Donorbox campaign URL — set once the charity (Chicago youth-bike org) is
-  // locked in. Until then the Donate button shows a "coming soon" state.
-  DONATE_URL: null,
+  DONATE_URL: "https://www.therecyclery.org/support-us/donate-money/",
 };
