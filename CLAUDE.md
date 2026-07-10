@@ -42,9 +42,12 @@ July 18–25, 2026, Onawa → Dubuque. Live at https://paulcathey.com/ragbrai26
   "BEACON_TOKEN:testtoken123"` and curl; KV is simulated locally.
 - CORS: Worker only allows origin `https://paulcathey.com`, so the cheer wall
   and photo strip show fallback/empty states on localhost previews. Expected.
-- Header stats (route miles / climb / ride days / checkboxes) are pure
-  client-side date math off `route.js` `start_date` (2026-07-19; the 18th is
-  arrival day). They bump at local midnight, not live.
+- Header route miles/climb: official per-day sums by date are the floor;
+  during ride days the beacon's projected mile lifts them live and also drives
+  the red rider dot on the elevation profile (`renderProgressStats` /
+  `riderMarkerPlugin` in `app.js`; gated on ride started + fix < 45 min old).
+  Ride-days stat and checkboxes stay date-math off `route.js` `start_date`
+  (2026-07-19; the 18th is arrival day).
 - KV free tier = 1,000 writes/day; each location report costs 2. One phone at
   a 300s report interval leaves comfortable headroom — don't add chatty
   writers without checking the budget.

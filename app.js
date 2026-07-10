@@ -8,14 +8,50 @@ const msPerDay = 24 * 60 * 60 * 1000;
 const daysToStart = Math.ceil((startDate - today) / msPerDay);
 const RIDE_DAYS = (meta.days && meta.days.length) || 7;
 const daysCompleted = daysToStart >= 0 ? 0 : Math.min(RIDE_DAYS, -daysToStart);
-const progress = daysCompleted / RIDE_DAYS;
 
-const milesDone = (meta.total_miles * progress).toFixed(1);
-const climbDone = Math.round(meta.total_climb_ft * progress);
-document.getElementById("stat-miles").textContent =
-  `${milesDone} / ${meta.total_miles.toLocaleString()}`;
-document.getElementById("stat-climb").textContent =
-  `${climbDone.toLocaleString()} / ${meta.total_climb_ft.toLocaleString()}`;
+// Header miles/climb: finished days' official numbers are the floor; during a
+// ride day renderProgressStats() lifts them live using the beacon's projected
+// mile (see renderLive). A dead tracker just falls back to the date math.
+const dayData = meta.days || [];
+const statMilesEl = document.getElementById("stat-miles");
+const statClimbEl = document.getElementById("stat-climb");
+
+function sumDays(field, n) {
+  return dayData.slice(0, Math.max(0, n)).reduce((s, d) => s + d[field], 0);
+}
+
+// Overnight towns bound each ride day, in the same track-mile basis that
+// projectOntoTrack() reports (cumulativeMiles is re-marked onto the real
+// road line once route.geojson loads).
+function dayBoundaryMiles() {
+  const b = [0];
+  for (let d = 1; d <= RIDE_DAYS; d++) {
+    const idx = route.findIndex(p => p.kind === "overnight" && p.day === d);
+    b[d] = idx >= 0 ? cumulativeMiles[idx] : b[d - 1];
+  }
+  return b;
+}
+
+function renderProgressStats(liveMile) {
+  let miles = sumDays("miles", daysCompleted);
+  let climb = sumDays("climb_ft", daysCompleted);
+  if (liveMile != null && dayData.length) {
+    const b = dayBoundaryMiles();
+    let d = 1;
+    while (d < RIDE_DAYS && liveMile > b[d]) d++;
+    const span = b[d] - b[d - 1];
+    const frac = span > 0 ? Math.max(0, Math.min(1, (liveMile - b[d - 1]) / span)) : 0;
+    const liveMiles = sumDays("miles", d - 1) + frac * dayData[d - 1].miles;
+    if (liveMiles > miles) {
+      miles = liveMiles;
+      climb = sumDays("climb_ft", d - 1) + frac * dayData[d - 1].climb_ft;
+    }
+  }
+  statMilesEl.textContent = `${miles.toFixed(1)} / ${meta.total_miles.toLocaleString()}`;
+  statClimbEl.textContent =
+    `${Math.round(climb).toLocaleString()} / ${meta.total_climb_ft.toLocaleString()}`;
+}
+renderProgressStats(null);
 document.getElementById("stat-days").textContent = `${daysCompleted} / ${RIDE_DAYS}`;
 
 const map = L.map("map", { scrollWheelZoom: false });
@@ -235,8 +271,39 @@ if (daysToStart > 0) {
 
 const canvas = document.getElementById("elevation-chart");
 const ctx = canvas.getContext("2d");
+
+// Live rider dot on the elevation profile, drawn at the beacon's projected
+// mile and interpolated between the bracketing towns' chart points. Colors
+// match the map's .live-marker.
+let riderMile = null;
+const riderMarkerPlugin = {
+  id: "riderMarker",
+  afterDatasetsDraw(chart) {
+    if (riderMile == null) return;
+    const pts = chart.getDatasetMeta(0).data;
+    if (pts.length < 2) return;
+    let i = 0;
+    while (i < cumulativeMiles.length - 2 && cumulativeMiles[i + 1] < riderMile) i++;
+    const span = cumulativeMiles[i + 1] - cumulativeMiles[i];
+    const t = span > 0 ? Math.max(0, Math.min(1, (riderMile - cumulativeMiles[i]) / span)) : 0;
+    const x = pts[i].x + t * (pts[i + 1].x - pts[i].x);
+    const y = pts[i].y + t * (pts[i + 1].y - pts[i].y);
+    const c = chart.ctx;
+    c.save();
+    c.beginPath();
+    c.arc(x, y, 6, 0, Math.PI * 2);
+    c.fillStyle = "#ff3b3b";
+    c.fill();
+    c.lineWidth = 2;
+    c.strokeStyle = "#800000";
+    c.stroke();
+    c.restore();
+  },
+};
+
 const elevationChart = new Chart(ctx, {
   type: "line",
+  plugins: [riderMarkerPlugin],
   data: {
     labels: route.map(p => p.name),
     datasets: [{
@@ -373,6 +440,20 @@ function renderLive(data) {
   const pos = projectOntoTrack(latest.lat, latest.lng);
   lastSeenEl.textContent =
     `${timeAgo(latest.ts)} · ~mile ${pos.mile.toFixed(1)}, near ${nearestTown(latest.lat, latest.lng)}`;
+
+  // Feed the live mile into the header stats and the elevation-profile rider
+  // dot — only once the ride has started and only while the fix is fresh, so
+  // a dead tracker can't paint stale progress.
+  const fixAgeMin = (Date.now() - new Date(latest.ts)) / 60000;
+  const liveMile = daysToStart <= 0 && fixAgeMin <= 45 ? pos.mile : null;
+  renderProgressStats(liveMile);
+  updateRiderMarker(liveMile);
+}
+
+function updateRiderMarker(mile) {
+  if (mile === riderMile) return;
+  riderMile = mile;
+  elevationChart.update("none");
 }
 
 function pollLive() {
