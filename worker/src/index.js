@@ -181,20 +181,31 @@ async function refreshStats(env) {
 }
 
 // Accepts {lat, lng, ts?, acc?}, an Overland batch
-// ({locations: [GeoJSON Feature, ...]}), or Traccar/OsmAnd-style query params
-// (?lat=&lon=&timestamp=&accuracy=). Auth: Bearer token, ?token=, or — for
-// Traccar, which has no custom-header/URL-query support — the device
-// identifier it always sends as ?id=.
+// ({locations: [GeoJSON Feature, ...]}), or Traccar/OsmAnd-style fields
+// (id, lat, lon, timestamp, accuracy) — old Traccar clients put those in the
+// query string, the 2026 Flutter client form-encodes them in the POST body.
+// Auth: Bearer token, ?token=, or the Traccar device identifier (id), since
+// that client can't send custom headers or URL params.
 async function postLocation(request, url, env, cors) {
   if (!env.BEACON_TOKEN) {
     return new Response(JSON.stringify({ error: "beacon not configured" }), {
       status: 503, headers: { "Content-Type": "application/json", ...cors },
     });
   }
+
+  const params = new URLSearchParams(url.search);
+  const isForm = (request.headers.get("Content-Type") || "")
+    .includes("application/x-www-form-urlencoded");
+  if (isForm) {
+    for (const [k, v] of new URLSearchParams(await request.text())) {
+      params.set(k, v);
+    }
+  }
+
   const auth = request.headers.get("Authorization") || "";
   const token = auth.startsWith("Bearer ")
     ? auth.slice(7)
-    : url.searchParams.get("token") || url.searchParams.get("id");
+    : params.get("token") || params.get("id");
   if (token !== env.BEACON_TOKEN) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
       status: 401, headers: { "Content-Type": "application/json", ...cors },
@@ -202,18 +213,24 @@ async function postLocation(request, url, env, cors) {
   }
 
   const points = [];
-  if (url.searchParams.has("lat") && url.searchParams.has("lon")) {
+  if (params.has("lat") && params.has("lon")) {
     // Traccar sends epoch seconds; tolerate millis and missing.
-    const n = Number(url.searchParams.get("timestamp"));
+    const n = Number(params.get("timestamp"));
     points.push({
-      lat: Number(url.searchParams.get("lat")),
-      lng: Number(url.searchParams.get("lon")),
+      lat: Number(params.get("lat")),
+      lng: Number(params.get("lon")),
       ts: Number.isFinite(n) && n > 0
         ? new Date(n < 1e12 ? n * 1000 : n).toISOString()
         : new Date().toISOString(),
-      acc: Number(url.searchParams.get("accuracy")) || undefined,
+      acc: Number(params.get("accuracy")) || undefined,
     });
     return storePoints(points, env, cors);
+  }
+  if (isForm) {
+    // Form body already consumed — don't fall through to the JSON parse.
+    return new Response(JSON.stringify({ error: "no valid points" }), {
+      status: 400, headers: { "Content-Type": "application/json", ...cors },
+    });
   }
 
   let body;
