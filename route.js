@@ -7,9 +7,9 @@
 
 window.RAGBRAI_ROUTE = [
   { name: "Onawa",          day: 0, kind: "overnight", lat: 42.0269, lng: -96.0975, elevation_ft: 1060 },
-  { name: "Turin",           day: 1, kind: "pass",     lat: 41.9636, lng: -95.9694, elevation_ft: 1140 },
+  { name: "Turin",           day: 1, kind: "pass",     lat: 42.0194, lng: -95.9667, elevation_ft: 1140 },
   { name: "Soldier",         day: 1, kind: "pass",     lat: 41.9803, lng: -95.7783, elevation_ft: 1280 },
-  { name: "Dunlap",          day: 1, kind: "meeting",  lat: 41.8703, lng: -95.6017, elevation_ft: 1180 },
+  { name: "Dunlap",          day: 1, kind: "meeting",  lat: 41.8542, lng: -95.6006, elevation_ft: 1180 },
   { name: "Earling",         day: 1, kind: "pass",     lat: 41.7800, lng: -95.4264, elevation_ft: 1310 },
   { name: "Westphalia",      day: 1, kind: "pass",     lat: 41.7203, lng: -95.4080, elevation_ft: 1320 },
   { name: "Harlan",          day: 1, kind: "overnight", lat: 41.6536, lng: -95.3247, elevation_ft: 1280 },
@@ -26,10 +26,10 @@ window.RAGBRAI_ROUTE = [
   { name: "Colo",            day: 4, kind: "pass",     lat: 42.0264, lng: -93.3133, elevation_ft: 1040 },
   { name: "State Center",    day: 4, kind: "pass",     lat: 42.0136, lng: -93.1647, elevation_ft: 1010 },
   { name: "Marshalltown",    day: 4, kind: "overnight", lat: 42.0494, lng: -92.9080, elevation_ft: 899 },
-  { name: "Green Mountain",  day: 5, kind: "pass",     lat: 42.1350, lng: -92.7592, elevation_ft: 990 },
+  { name: "Green Mountain",  day: 5, kind: "pass",     lat: 42.1021, lng: -92.8205, elevation_ft: 990 },
   { name: "Beaman",          day: 5, kind: "pass",     lat: 42.2225, lng: -92.8169, elevation_ft: 1030 },
   { name: "Grundy Center",   day: 5, kind: "meeting",  lat: 42.3636, lng: -92.7686, elevation_ft: 970 },
-  { name: "Morrison",        day: 5, kind: "pass",     lat: 42.3661, lng: -92.6664, elevation_ft: 950 },
+  { name: "Morrison",        day: 5, kind: "pass",     lat: 42.3421, lng: -92.6747, elevation_ft: 950 },
   { name: "Reinbeck",        day: 5, kind: "pass",     lat: 42.3258, lng: -92.5972, elevation_ft: 935 },
   { name: "Washburn",        day: 5, kind: "pass",     lat: 42.4156, lng: -92.3017, elevation_ft: 870 },
   { name: "Gilbertville",    day: 5, kind: "pass",     lat: 42.4072, lng: -92.2178, elevation_ft: 870 },
@@ -42,7 +42,7 @@ window.RAGBRAI_ROUTE = [
   { name: "Field of Dreams", day: 7, kind: "special",  lat: 42.4969, lng: -91.0556, elevation_ft: 1020 },
   { name: "Farley",          day: 7, kind: "pass",     lat: 42.4422, lng: -90.9929, elevation_ft: 1130 },
   { name: "Epworth",         day: 7, kind: "pass",     lat: 42.4456, lng: -90.9277, elevation_ft: 1080 },
-  { name: "Centralia",       day: 7, kind: "pass",     lat: 42.5147, lng: -90.7791, elevation_ft: 1100 },
+  { name: "Centralia",       day: 7, kind: "pass",     lat: 42.4726, lng: -90.8363, elevation_ft: 1100 },
   { name: "Dubuque",         day: 7, kind: "overnight", lat: 42.5006, lng: -90.6646, elevation_ft: 656 },
 ];
 
