@@ -7,11 +7,15 @@ Friends-and-family follow-along site for RAGBRAI LIII (July 18–25, 2026), Onaw
 - Static HTML/JS, no build step
 - Leaflet + OpenStreetMap tiles for the map
 - Chart.js for the elevation profile
-- Deploys anywhere static (Vercel, Netlify, Cloudflare Pages)
+- Deploys: GitHub Pages on push (site); GitHub Action runs `wrangler deploy`
+  on `worker/` changes (needs the `CLOUDFLARE_API_TOKEN` repo secret)
 
 ## Status
 
-Route + elevation render, Google Photos album link, Strava training miles, and live "last seen" tracking.
+Everything on the roadmap is live: route + elevation render, a photo strip
+pulled from the shared Google Photos album (Worker `/photos` scrapes the
+public share page hourly), Strava training miles, live "last seen" tracking,
+the Donate button, and the wall of zingers.
 
 The map line comes from `route.geojson` — real road geometry pulled from the
 official RAGBRAI Ride with GPS routes for all 7 days. The main paved route is
@@ -39,14 +43,20 @@ If `route.geojson` is missing the map falls back to straight town-to-town lines.
 The map shows a pulsing red dot plus a breadcrumb trail for the current ride
 day, and the sidebar shows "last seen X min ago · ~mile Y, near Town".
 
-Two ways to feed it from the road:
+Ways to feed it from the road (the ride plan is one Android phone on Traccar;
+see `RIDE-GUIDE.md`):
 
-- **`beacon.html`** (this site, not linked from the main page) — open it on a
-  phone, paste the beacon token once, and either tap **Check in now** at stops
-  or flip on **Auto check-in** (posts every 10 min while the page is open;
-  grabs a screen wake lock, so best with the phone on a charger).
-- **[Overland](https://overland.p3k.app/)** (iOS/Android, free) — proper
-  background tracking. Receiver URL:
+- **[Traccar Client](https://play.google.com/store/apps/details?id=org.traccar.client)**
+  (Android, free) — proper background tracking. Server URL
+  `https://ragbrai-stats.pmcathey.workers.dev/location`, device identifier =
+  the beacon token. The Worker parses its OsmAnd-style reports (query-string
+  or form-encoded) natively.
+- **`beacon.html`** (this site, not linked from the main page) — zero-install
+  backup: open it on a phone, paste the beacon token once, and either tap
+  **Check in now** at stops or flip on **Auto check-in** (posts every 10 min
+  while the page is open; grabs a screen wake lock, so best on a charger).
+- **[Overland](https://overland.p3k.app/)** (iOS only — the Android build is
+  delisted) — Receiver URL:
   `https://ragbrai-stats.pmcathey.workers.dev/location?token=<BEACON_TOKEN>`.
   The Worker accepts Overland's batch format natively.
 

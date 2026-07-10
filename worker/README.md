@@ -1,6 +1,8 @@
 # RAGBRAI Stats Worker
 
-Cloudflare Worker that pulls Strava club ride totals on a 15-minute cron (`GET /stats`), stores live ride location (`POST /location` from the phone, `GET /location` for the site), and runs the cheer-wall (`GET`/`POST`/`DELETE /cheers`).
+Cloudflare Worker that pulls Strava club ride totals on a 15-minute cron (`GET /stats`), stores live ride location (`POST /location` from the phone, `GET /location` for the site), runs the cheer-wall (`GET`/`POST`/`DELETE /cheers`), and serves album photo links (`GET /photos`).
+
+Deploys automatically: any push touching `worker/` runs `.github/workflows/deploy-worker.yml` (`wrangler deploy` with the `CLOUDFLARE_API_TOKEN` repo secret). Manual deploys with `npx wrangler deploy` still work.
 
 ## What you need before starting
 
@@ -74,7 +76,7 @@ These are added on top of the live count and can be adjusted anytime without dis
 Endpoints:
 
 - `POST /location` — body `{lat, lng, ts?, acc?}` or an [Overland](https://overland.p3k.app/) batch (`{locations: [...]}`). Auth: `Authorization: Bearer <BEACON_TOKEN>` header or `?token=<BEACON_TOKEN>` query param. Stores the latest fix plus a per-day breadcrumb trail (thinned to 1 point / 2 min, capped at 600 points, day boundary = America/Chicago).
-- `GET|POST /location?lat=&lon=&timestamp=&accuracy=` — Traccar/OsmAnd-style check-in, params in the query string (`timestamp` = epoch seconds or millis, optional). Auth: `?token=` or — since Traccar can't set custom URLs params or headers — the `?id=` device identifier it always sends. Same storage as above.
+- `GET|POST /location` with OsmAnd-style fields (`lat`, `lon`, `timestamp` = epoch seconds or millis, `accuracy`) — in the query string (older Traccar clients) or a form-encoded POST body (the current Play-Store Traccar client). Auth: `token=` or — since Traccar can't send custom headers or URL params — the `id=` device identifier it always includes. Same storage as above.
 - `GET /location` (no coord params) — `{latest: {lat, lng, ts, acc}, trail: [{lat, lng, ts}, ...]}` for the latest fix's ride day. Public, no auth.
 
 Setup:
@@ -143,5 +145,5 @@ curl -X DELETE "https://ragbrai-stats.pmcathey.workers.dev/cheers?id=<id>" \
 ## Files
 
 - `wrangler.toml` — config (no secrets)
-- `src/index.js` — Worker code: `/auth`, `/callback`, `/stats`, `/location`, scheduled handler
+- `src/index.js` — Worker code: `/auth`, `/callback`, `/stats`, `/location`, `/cheers`, `/photos`, scheduled handler
 - `package.json` — wrangler dev dep only
