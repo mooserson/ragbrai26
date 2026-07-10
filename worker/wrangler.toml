@@ -1,6 +1,8 @@
 name = "ragbrai-stats"
 main = "src/index.js"
 compatibility_date = "2026-01-01"
+# Not a secret — needed so CI deploys don't have to guess the account.
+account_id = "c64f4b3ea3043be47733905ecc99cdde"
 
 # Public, non-secret config — committed to the repo.
 [vars]

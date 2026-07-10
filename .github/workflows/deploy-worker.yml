@@ -1,0 +1,30 @@
+# Deploys the Cloudflare Worker whenever worker/ changes on main, so site
+# changes made from any machine (including Claude Code cloud sessions during
+# the ride) go live without needing a laptop with wrangler auth.
+#
+# Requires one repo secret: CLOUDFLARE_API_TOKEN
+#   Create at https://dash.cloudflare.com/profile/api-tokens with the
+#   "Edit Cloudflare Workers" template, then add it at
+#   https://github.com/mooserson/ragbrai26/settings/secrets/actions
+name: Deploy Worker
+
+on:
+  push:
+    branches: [main]
+    paths: ["worker/**", ".github/workflows/deploy-worker.yml"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+        working-directory: worker
+      - run: npx wrangler deploy
+        working-directory: worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
