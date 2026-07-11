@@ -478,19 +478,28 @@ if (donateUrl) {
   donateBtn.textContent = "Donate — link drops soon";
 }
 
-// --- Photo strip: six random shots from the shared album ---
+// --- Photo strip: 3 most-recent shots + 3 random from the shared album ---
+// The worker returns the album in Google's page order (cover excluded). Google
+// doesn't expose per-photo dates, but the newest shots lead that order, so the
+// first few are "recent." If the featured 3 ever look stale, Google reordered —
+// flip RECENT_FROM_START.
+const RECENT_FROM_START = true;
 const photoStrip = document.getElementById("photo-strip");
 if (statsApi && photoStrip) {
   const albumUrl = photoStrip.parentElement.querySelector("a.button").href;
   fetch(`${statsApi}/photos`)
     .then(r => r.json())
     .then(d => {
-      const urls = (d.photos || []).slice();
-      for (let i = urls.length - 1; i > 0; i--) {
+      const pool = (d.photos || []).slice();
+      if (pool.length === 0) return;
+      if (!RECENT_FROM_START) pool.reverse();
+      const recent = pool.slice(0, 3);
+      const rest = pool.slice(3);
+      for (let i = rest.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [urls[i], urls[j]] = [urls[j], urls[i]];
+        [rest[i], rest[j]] = [rest[j], rest[i]];
       }
-      const picks = urls.slice(0, 6);
+      const picks = [...recent, ...rest.slice(0, 3)];
       if (picks.length === 0) return;
       photoStrip.replaceChildren(...picks.map(u => {
         const a = document.createElement("a");

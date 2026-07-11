@@ -339,8 +339,13 @@ async function getPhotos(env, cors) {
       const res = await fetch(env.PHOTOS_ALBUM_URL, { redirect: "follow" });
       const html = await res.text();
       const seen = new Set();
-      for (const m of html.matchAll(/https:\/\/lh3\.googleusercontent\.com\/pw\/[A-Za-z0-9_-]+/g)) {
-        seen.add(m[0]);
+      // Grid photos appear as JSON media arrays: ["<lh3 url>", width, height, ...].
+      // Matching that shape (rather than every lh3 URL on the page) skips the
+      // <meta og:image> social preview and the CSS hero-banner cover, which lead
+      // the markup and would otherwise masquerade as the "newest" shot. Google
+      // orders this grid newest-first.
+      for (const m of html.matchAll(/\["(https:\/\/lh3\.googleusercontent\.com\/pw\/[A-Za-z0-9_-]+)"/g)) {
+        seen.add(m[1]);
         if (seen.size >= PHOTOS_MAX) break;
       }
       if (seen.size > 0) {
