@@ -280,20 +280,27 @@ async function storePoints(points, env, cors) {
   );
   if (valid.length === 0) return acceptNoStore(cors);
 
-  const latest = valid[valid.length - 1];
-  await env.RAGBRAI_KV.put("location:latest", JSON.stringify(latest));
+  try {
+    const latest = valid[valid.length - 1];
+    await env.RAGBRAI_KV.put("location:latest", JSON.stringify(latest));
 
-  // Append to today's breadcrumb trail, thinned to one point per 2 min,
-  // capped so a runaway tracker can't grow the value unbounded.
-  const trailKey = `track:${chicagoDate(latest.ts)}`;
-  const trail = (await env.RAGBRAI_KV.get(trailKey, "json")) || [];
-  for (const p of valid) {
-    const prev = trail[trail.length - 1];
-    if (!prev || Math.abs(new Date(p.ts) - new Date(prev.ts)) >= 120 * 1000) {
-      trail.push({ lat: p.lat, lng: p.lng, ts: p.ts });
+    // Append to today's breadcrumb trail, thinned to one point per 2 min,
+    // capped so a runaway tracker can't grow the value unbounded.
+    const trailKey = `track:${chicagoDate(latest.ts)}`;
+    const trail = (await env.RAGBRAI_KV.get(trailKey, "json")) || [];
+    for (const p of valid) {
+      const prev = trail[trail.length - 1];
+      if (!prev || Math.abs(new Date(p.ts) - new Date(prev.ts)) >= 120 * 1000) {
+        trail.push({ lat: p.lat, lng: p.lng, ts: p.ts });
+      }
     }
+    await env.RAGBRAI_KV.put(trailKey, JSON.stringify(trail.slice(-600)));
+  } catch {
+    // KV write/read failure (e.g. the free tier's 1,000-writes/day cap during a
+    // big backlog drain) must not surface as a 5xx — Traccar would retry the same
+    // report forever and re-jam. Drop this one and ack so the queue keeps moving.
+    return acceptNoStore(cors);
   }
-  await env.RAGBRAI_KV.put(trailKey, JSON.stringify(trail.slice(-600)));
 
   // Overland expects {"result":"ok"}; harmless for everyone else.
   return new Response(JSON.stringify({ result: "ok" }), {
