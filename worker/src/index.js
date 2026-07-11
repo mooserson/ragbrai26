@@ -69,11 +69,8 @@ export default {
     }
 
     if (url.pathname === "/location") {
-      const latest = await env.RAGBRAI_KV.get("location:latest", "json");
-      const trail = latest
-        ? await env.RAGBRAI_KV.get(`track:${chicagoDate(latest.ts)}`, "json")
-        : null;
-      return new Response(JSON.stringify({ latest: latest || null, trail: trail || [] }), {
+      const b = await env.RAGBRAI_KV.get("beacon", "json");
+      return new Response(JSON.stringify({ latest: b?.latest || null, trail: b?.trail || [] }), {
         headers: { "Content-Type": "application/json", ...cors },
       });
     }
@@ -273,6 +270,19 @@ function acceptNoStore(cors) {
   });
 }
 
+// A chatty tracker (Traccar can report every few seconds while moving) or a
+// replayed offline backlog could blow Cloudflare KV's free-tier 1,000-writes/day
+// cap. Two defenses keep us well under it no matter how often reports arrive:
+//   1. Single key — `latest` and today's trail live in one `beacon` value, so
+//      each stored report costs ONE write, not two.
+//   2. Real-time throttle — store at most once per MIN_STORE_MS of WALL-CLOCK
+//      time (measured from our last write, not the point's timestamp), so a fast
+//      stream or a flood of old buffered points still writes ~once/2min. The site
+//      polls every 60s and tolerates gaps, so the coarser cadence is invisible.
+const MIN_STORE_MS = 120 * 1000;
+const TRAIL_CAP = 600;
+const TRAIL_THIN_MS = 120 * 1000;
+
 async function storePoints(points, env, cors) {
   const valid = points.filter(p =>
     Number.isFinite(p.lat) && Number.isFinite(p.lng) &&
@@ -281,24 +291,30 @@ async function storePoints(points, env, cors) {
   if (valid.length === 0) return acceptNoStore(cors);
 
   try {
-    const latest = valid[valid.length - 1];
-    await env.RAGBRAI_KV.put("location:latest", JSON.stringify(latest));
+    const now = Date.now();
+    const b = (await env.RAGBRAI_KV.get("beacon", "json"))
+      || { latest: null, day: null, trail: [], storedAt: 0 };
 
-    // Append to today's breadcrumb trail, thinned to one point per 2 min,
-    // capped so a runaway tracker can't grow the value unbounded.
-    const trailKey = `track:${chicagoDate(latest.ts)}`;
-    const trail = (await env.RAGBRAI_KV.get(trailKey, "json")) || [];
+    // Throttle on real time since our last write — a burst of live reports or a
+    // replayed backlog of old points can't run up the daily write count.
+    if (b.storedAt && now - b.storedAt < MIN_STORE_MS) return acceptNoStore(cors);
+
+    const latest = valid[valid.length - 1];
+    const day = chicagoDate(latest.ts);
+    // New ride day → start the trail fresh; the site only draws today's line.
+    const trail = b.day === day ? (b.trail || []) : [];
     for (const p of valid) {
       const prev = trail[trail.length - 1];
-      if (!prev || Math.abs(new Date(p.ts) - new Date(prev.ts)) >= 120 * 1000) {
+      if (!prev || Math.abs(new Date(p.ts) - new Date(prev.ts)) >= TRAIL_THIN_MS) {
         trail.push({ lat: p.lat, lng: p.lng, ts: p.ts });
       }
     }
-    await env.RAGBRAI_KV.put(trailKey, JSON.stringify(trail.slice(-600)));
+    await env.RAGBRAI_KV.put("beacon", JSON.stringify({
+      latest, day, trail: trail.slice(-TRAIL_CAP), storedAt: now,
+    }));
   } catch {
-    // KV write/read failure (e.g. the free tier's 1,000-writes/day cap during a
-    // big backlog drain) must not surface as a 5xx — Traccar would retry the same
-    // report forever and re-jam. Drop this one and ack so the queue keeps moving.
+    // KV read/write failure (e.g. the daily write cap) must not surface as a 5xx —
+    // Traccar would retry the same report forever and re-jam. Drop and ack.
     return acceptNoStore(cors);
   }
 
