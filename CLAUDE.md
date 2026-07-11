@@ -48,8 +48,12 @@ July 18–25, 2026, Onawa → Dubuque. Live at https://paulcathey.com/ragbrai26
   `riderMarkerPlugin` in `app.js`; gated on ride started + fix < 45 min old).
   Ride-days stat and checkboxes stay date-math off `route.js` `start_date`
   (2026-07-19; the 18th is arrival day).
-- KV free tier = 1,000 writes/day; each location report costs 2. One phone at
-  a 300s report interval leaves comfortable headroom — don't add chatty
-  writers without checking the budget.
+- KV free tier = 1,000 writes/day. Location reports store `latest` + today's
+  trail in a single `beacon` key (1 write/report), throttled to once per 120s
+  of wall-clock time in `storePoints`, so even a chatty tracker or a replayed
+  offline backlog stays ~<=720 writes/day. `/location` also always returns 200
+  after auth (incl. on KV failure) so a non-2xx can't make Traccar retry-jam
+  its queue. Don't add chatty writers or remove the throttle without checking
+  the budget. (History: a Traccar backlog drain blew the cap on 2026-07-11.)
 - Ride-week operational runbook: `RIDE-GUIDE.md`. Worker details:
   `worker/README.md`.
