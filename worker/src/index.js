@@ -227,19 +227,18 @@ async function postLocation(request, url, env, cors) {
     return storePoints(points, env, cors);
   }
   if (isForm) {
-    // Form body already consumed — don't fall through to the JSON parse.
-    return new Response(JSON.stringify({ error: "no valid points" }), {
-      status: 400, headers: { "Content-Type": "application/json", ...cors },
-    });
+    // Form body already consumed and it carried no lat/lon (a Traccar status/
+    // heartbeat report). Accept it — see acceptNoStore for why we never 4xx here.
+    return acceptNoStore(cors);
   }
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return new Response(JSON.stringify({ error: "invalid JSON" }), {
-      status: 400, headers: { "Content-Type": "application/json", ...cors },
-    });
+    // Unparseable body from an authenticated sender — accept and drop rather
+    // than 400, so a stray report can't wedge Traccar's send queue.
+    return acceptNoStore(cors);
   }
 
   if (Array.isArray(body.locations)) {
@@ -263,16 +262,23 @@ async function postLocation(request, url, env, cors) {
   return storePoints(points, env, cors);
 }
 
+// Traccar Client sends its position queue in strict order and only drops a
+// position after an HTTP 200 — ANY non-2xx makes it retry that same position
+// forever, stalling every report behind it. So once a report has authenticated,
+// this endpoint must always answer 200, even when there's nothing to store
+// (a heartbeat, a coordless status ping, or a payload we couldn't parse).
+function acceptNoStore(cors) {
+  return new Response(JSON.stringify({ result: "ok", stored: 0 }), {
+    headers: { "Content-Type": "application/json", ...cors },
+  });
+}
+
 async function storePoints(points, env, cors) {
   const valid = points.filter(p =>
     Number.isFinite(p.lat) && Number.isFinite(p.lng) &&
     Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180,
   );
-  if (valid.length === 0) {
-    return new Response(JSON.stringify({ error: "no valid points" }), {
-      status: 400, headers: { "Content-Type": "application/json", ...cors },
-    });
-  }
+  if (valid.length === 0) return acceptNoStore(cors);
 
   const latest = valid[valid.length - 1];
   await env.RAGBRAI_KV.put("location:latest", JSON.stringify(latest));
