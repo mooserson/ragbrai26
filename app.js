@@ -501,11 +501,8 @@ if (headerThumb && photoModal) {
 }
 
 // --- Photo strip: top row = 3 most recent, bottom row = 3 random ---
-// The worker returns the album in Google's page order, which is oldest-first
-// (confirmed against the live album), so reverse to put the newest first. Google
-// exposes no per-photo dates, so recency rides on that page order — if the top
-// row ever looks wrong, flip NEWEST_AT_END.
-const NEWEST_AT_END = true;
+// The worker returns photos already sorted newest-first (by each shot's creation
+// time), so the first three are genuinely the most recent.
 const photoStrip = document.getElementById("photo-strip");
 if (statsApi && photoStrip) {
   const albumUrl = photoStrip.parentElement.querySelector("a.button").href;
@@ -514,7 +511,6 @@ if (statsApi && photoStrip) {
     .then(d => {
       const pool = (d.photos || []).slice();
       if (pool.length === 0) return;
-      if (NEWEST_AT_END) pool.reverse();   // -> newest first
       const recent = pool.slice(0, 3);     // top row: 3 most recent
       const rest = pool.slice(3);          // bottom row: 3 random from the rest
       for (let i = rest.length - 1; i > 0; i--) {

@@ -338,18 +338,26 @@ async function getPhotos(env, cors) {
     try {
       const res = await fetch(env.PHOTOS_ALBUM_URL, { redirect: "follow" });
       const html = await res.text();
+      // Grid photos are JSON media arrays: ["<lh3 url>",W,H, …EXIF… ]],<creationMs>,…
+      // Matching that shape (not every lh3 URL) skips the og:image social preview
+      // and the hero-banner cover. Google's page order isn't reliably chronological
+      // (a stray oldest photo can lead it), so pull each photo's creation timestamp
+      // and sort newest-first — the site features the most recent shots up top.
+      const matches = [...html.matchAll(/\["(https:\/\/lh3\.googleusercontent\.com\/pw\/[A-Za-z0-9_-]+)"/g)];
       const seen = new Set();
-      // Grid photos appear as JSON media arrays: ["<lh3 url>", width, height, ...].
-      // Matching that shape (rather than every lh3 URL on the page) skips the
-      // <meta og:image> social preview and the CSS hero-banner cover, which lead
-      // the markup and would otherwise masquerade as the "newest" shot. Google
-      // orders this grid newest-first.
-      for (const m of html.matchAll(/\["(https:\/\/lh3\.googleusercontent\.com\/pw\/[A-Za-z0-9_-]+)"/g)) {
-        seen.add(m[1]);
-        if (seen.size >= PHOTOS_MAX) break;
+      const items = [];
+      for (let i = 0; i < matches.length; i++) {
+        const url = matches[i][1];
+        if (seen.has(url)) continue;
+        seen.add(url);
+        const end = matches[i + 1] ? matches[i + 1].index : matches[i].index + 400;
+        // First 13-digit epoch-ms (year 2023–2027) after the URL is the creation time.
+        const tsMatch = html.slice(matches[i].index, end).match(/\b(1[78]\d{11})\b/);
+        items.push({ url, ts: tsMatch ? Number(tsMatch[1]) : 0 });
       }
-      if (seen.size > 0) {
-        cached.urls = [...seen];
+      items.sort((a, b) => b.ts - a.ts);
+      if (items.length > 0) {
+        cached.urls = items.slice(0, PHOTOS_MAX).map(x => x.url);
         cached.fetched_at = Date.now();
         await env.RAGBRAI_KV.put("photos", JSON.stringify(cached));
       }
