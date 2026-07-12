@@ -500,12 +500,12 @@ if (headerThumb && photoModal) {
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !photoModal.hidden) closeModal(); });
 }
 
-// --- Photo strip: 3 most-recent shots + 3 random from the shared album ---
-// The worker returns the album in Google's page order (cover excluded). Google
-// doesn't expose per-photo dates, but the newest shots lead that order, so the
-// first few are "recent." If the featured 3 ever look stale, Google reordered —
-// flip RECENT_FROM_START.
-const RECENT_FROM_START = true;
+// --- Photo strip: top row = 3 most recent, bottom row = 3 random ---
+// The worker returns the album in Google's page order, which is oldest-first
+// (confirmed against the live album), so reverse to put the newest first. Google
+// exposes no per-photo dates, so recency rides on that page order — if the top
+// row ever looks wrong, flip NEWEST_AT_END.
+const NEWEST_AT_END = true;
 const photoStrip = document.getElementById("photo-strip");
 if (statsApi && photoStrip) {
   const albumUrl = photoStrip.parentElement.querySelector("a.button").href;
@@ -514,9 +514,9 @@ if (statsApi && photoStrip) {
     .then(d => {
       const pool = (d.photos || []).slice();
       if (pool.length === 0) return;
-      if (!RECENT_FROM_START) pool.reverse();
-      const recent = pool.slice(0, 3);
-      const rest = pool.slice(3);
+      if (NEWEST_AT_END) pool.reverse();   // -> newest first
+      const recent = pool.slice(0, 3);     // top row: 3 most recent
+      const rest = pool.slice(3);          // bottom row: 3 random from the rest
       for (let i = rest.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [rest[i], rest[j]] = [rest[j], rest[i]];
