@@ -7,6 +7,10 @@ today.setHours(0, 0, 0, 0);
 const msPerDay = 24 * 60 * 60 * 1000;
 const daysToStart = Math.ceil((startDate - today) / msPerDay);
 const RIDE_DAYS = (meta.days && meta.days.length) || 7;
+// ?preview forces the live-progress UI (elevation rider dot + header lift) on
+// before the ride starts, so the beacon can be verified during prep. No effect
+// on the real site (no query param).
+const previewLive = new URLSearchParams(location.search).has("preview");
 const daysCompleted = daysToStart >= 0 ? 0 : Math.min(RIDE_DAYS, -daysToStart);
 
 // Header miles/climb: finished days' official numbers are the floor; during a
@@ -445,7 +449,7 @@ function renderLive(data) {
   // dot — only once the ride has started and only while the fix is fresh, so
   // a dead tracker can't paint stale progress.
   const fixAgeMin = (Date.now() - new Date(latest.ts)) / 60000;
-  const liveMile = daysToStart <= 0 && fixAgeMin <= 45 ? pos.mile : null;
+  const liveMile = (daysToStart <= 0 || previewLive) && fixAgeMin <= 45 ? pos.mile : null;
   renderProgressStats(liveMile);
   updateRiderMarker(liveMile);
 }
