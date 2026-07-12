@@ -486,6 +486,20 @@ if (donateUrl) {
   donateBtn.textContent = "Donate — link drops soon";
 }
 
+// --- Header team-photo thumbnail → click-out lightbox modal ---
+const headerThumb = document.getElementById("header-thumb");
+const photoModal = document.getElementById("photo-modal");
+const photoModalClose = document.getElementById("photo-modal-close");
+if (headerThumb && photoModal) {
+  const openModal = () => { photoModal.hidden = false; document.body.style.overflow = "hidden"; };
+  const closeModal = () => { photoModal.hidden = true; document.body.style.overflow = ""; };
+  headerThumb.addEventListener("click", openModal);
+  photoModalClose?.addEventListener("click", closeModal);
+  // Click the dark backdrop (but not the image) to dismiss.
+  photoModal.addEventListener("click", e => { if (e.target === photoModal) closeModal(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !photoModal.hidden) closeModal(); });
+}
+
 // --- Photo strip: 3 most-recent shots + 3 random from the shared album ---
 // The worker returns the album in Google's page order (cover excluded). Google
 // doesn't expose per-photo dates, but the newest shots lead that order, so the

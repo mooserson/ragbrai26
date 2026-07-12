@@ -10,9 +10,14 @@
 </head>
 <body>
   <header>
-    <div class="title">
-      <h1><a class="title-link" href="https://ragbrai.com/" target="_blank" rel="noopener noreferrer">The Sh1th34dz go... RAGBRAI! <span class="edition">LIII</span></a></h1>
-      <p class="subtitle">An Iowa Classic · July 18–25, 2026 · Onawa → Dubuque</p>
+    <div class="header-left">
+      <button class="header-thumb" id="header-thumb" aria-label="View the team photo">
+        <img src="assets/team.jpg" alt="The Sh1th34dz posing at the RAGBRAI LIII route banner" />
+      </button>
+      <div class="title">
+        <h1><a class="title-link" href="https://ragbrai.com/" target="_blank" rel="noopener noreferrer">The Sh1th34dz go... RAGBRAI! <span class="edition">LIII</span></a></h1>
+        <p class="subtitle">An Iowa Classic · July 18–25, 2026 · Onawa → Dubuque</p>
+      </div>
     </div>
     <div class="stats">
       <div>
@@ -90,6 +95,11 @@
       <div id="cheer-wall"></div>
     </section>
   </main>
+
+  <div id="photo-modal" class="photo-modal" hidden>
+    <button class="photo-modal-close" id="photo-modal-close" aria-label="Close photo">&times;</button>
+    <img src="assets/team.jpg" alt="The Sh1th34dz posing at the RAGBRAI LIII route banner" />
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
