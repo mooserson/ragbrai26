@@ -316,7 +316,11 @@ const elevationChart = new Chart(ctx, {
       borderColor: "#1f8f3b",
       backgroundColor: "rgba(31, 143, 59, 0.15)",
       fill: true,
-      tension: 0.35,
+      // No smoothing: straight segments between towns keep the live rider dot
+      // (placed by linear interpolation) exactly on the line — a tension curve
+      // let it float up to ~10px off on the steep Centralia→Dubuque drop. It's
+      // also truer to the data, which is approximate town elevations.
+      tension: 0,
       pointRadius: route.map(p => (styleByKind[p.kind] || styleByKind.pass).radius * 0.6),
       pointHoverRadius: 8,
       pointBackgroundColor: route.map(p => (styleByKind[p.kind] || styleByKind.pass).fill),
