@@ -56,7 +56,8 @@ function renderProgressStats(liveMile) {
     `${Math.round(climb).toLocaleString()} / ${meta.total_climb_ft.toLocaleString()}`;
 }
 renderProgressStats(null);
-document.getElementById("stat-days").textContent = `${daysCompleted} / ${RIDE_DAYS}`;
+// "Ride Days" counter is owned by renderDayProgress() (below), which counts
+// stages finished by arrival, not by calendar date.
 
 const map = L.map("map", { scrollWheelZoom: false });
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -215,14 +216,52 @@ function rideDateLabel(dayIndex) {
   return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
 }
 const dayInfo = meta.days || [];
+const dayRows = [];
 dayInfo.forEach((d, i) => {
   const li = document.createElement("li");
-  const done = d.day <= daysCompleted;
-  if (done) li.classList.add("done");
   const leg = i === 0 ? `${d.from} → ${d.to}` : `→ ${d.to}`;
-  li.innerHTML = `<input type="checkbox" disabled${done ? " checked" : ""}> <strong>${rideDateLabel(d.day)}</strong> · ${leg} <span class="day-miles">${d.miles.toFixed(1)} mi <span class="day-sep">|</span> ${d.climb_ft.toLocaleString()} ft</span>`;
+  li.innerHTML = `<input type="checkbox" disabled> <strong>${rideDateLabel(d.day)}</strong> · ${leg} <span class="day-miles">${d.miles.toFixed(1)} mi <span class="day-sep">|</span> ${d.climb_ft.toLocaleString()} ft</span>`;
   dayList.appendChild(li);
+  dayRows.push({ li, box: li.querySelector("input"), day: d.day });
 });
+
+// Furthest mile the beacon has reached this session (high-water mark, never
+// regresses), so a stage checks off the moment we roll into its overnight
+// town instead of waiting for the calendar to flip at midnight.
+let furthestMile = null;
+
+// How many stages are finished, by mile: a day is done once we've reached its
+// overnight town. Small tolerance so arriving in town (camp near the marker)
+// counts — safe because overnight towns sit miles past the prior stop.
+// Boundaries increase, so this is the largest day whose end town we've reached.
+function daysDoneByMile(mile) {
+  if (mile == null || !dayData.length) return 0;
+  const b = dayBoundaryMiles();
+  const REACHED_MI = 0.5;
+  let done = 0;
+  for (let d = 1; d <= RIDE_DAYS; d++) {
+    if (mile >= b[d] - REACHED_MI) done = d; else break;
+  }
+  return done;
+}
+
+// Effective completed-day count: the date-based floor lifted live once the
+// beacon shows we've actually finished a stage, so followers see a day tick
+// off when we arrive, not at midnight. Never regresses below the date floor.
+function daysDone() {
+  return Math.max(daysCompleted, daysDoneByMile(furthestMile));
+}
+
+function renderDayProgress() {
+  const done = daysDone();
+  dayRows.forEach(r => {
+    const isDone = r.day <= done;
+    r.box.checked = isDone;
+    r.li.classList.toggle("done", isDone);
+  });
+  document.getElementById("stat-days").textContent = `${done} / ${RIDE_DAYS}`;
+}
+renderDayProgress();
 
 const statsApi = window.RAGBRAI_CONFIG && window.RAGBRAI_CONFIG.STATS_API;
 const milesEl = document.getElementById("training-miles");
@@ -461,8 +500,10 @@ function renderLive(data) {
   const rideOn = daysToStart <= 0 || previewLive;
   const headerMile = rideOn ? pos.mile : null;
   const liveMile = rideOn && fixAgeMin <= 45 ? pos.mile : null;
+  if (headerMile != null) furthestMile = Math.max(furthestMile ?? 0, headerMile);
   renderProgressStats(headerMile);
   updateRiderMarker(liveMile);
+  renderDayProgress();
 }
 
 function updateRiderMarker(mile) {
