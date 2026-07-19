@@ -449,12 +449,19 @@ function renderLive(data) {
   lastSeenEl.textContent =
     `${timeAgo(latest.ts)} · ~mile ${pos.mile.toFixed(1)}, near ${nearestTown(latest.lat, latest.lng)}`;
 
-  // Feed the live mile into the header stats and the elevation-profile rider
-  // dot — only once the ride has started and only while the fix is fresh, so
-  // a dead tracker can't paint stale progress.
+  // Feed the beacon's projected mile into the header stats and the rider dot,
+  // but gate them differently — both only once the ride has started:
+  //  - Header floor (headerMile): the furthest mile reached, even after the fix
+  //    goes stale. Finishing a stage and pocketing the phone shouldn't zero the
+  //    header until midnight. renderProgressStats only ever RAISES the date-based
+  //    floor with this, never lowers it, so a stale fix can't shrink progress.
+  //  - Rider dot (liveMile): fresh fix only (< 45 min), so a dead tracker can't
+  //    paint a stale live position on the elevation profile.
   const fixAgeMin = (Date.now() - new Date(latest.ts)) / 60000;
-  const liveMile = (daysToStart <= 0 || previewLive) && fixAgeMin <= 45 ? pos.mile : null;
-  renderProgressStats(liveMile);
+  const rideOn = daysToStart <= 0 || previewLive;
+  const headerMile = rideOn ? pos.mile : null;
+  const liveMile = rideOn && fixAgeMin <= 45 ? pos.mile : null;
+  renderProgressStats(headerMile);
   updateRiderMarker(liveMile);
 }
 
