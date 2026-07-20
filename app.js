@@ -260,7 +260,6 @@ function renderDayProgress() {
     r.box.checked = isDone;
     r.li.classList.toggle("done", isDone);
   });
-  document.getElementById("stat-days").textContent = `${done} / ${RIDE_DAYS}`;
 }
 renderDayProgress();
 
