@@ -225,31 +225,32 @@ dayInfo.forEach((d, i) => {
   dayRows.push({ li, box: li.querySelector("input"), day: d.day });
 });
 
-// Furthest mile the beacon has reached this session (high-water mark, never
-// regresses), so a stage checks off the moment we roll into its overnight
-// town instead of waiting for the calendar to flip at midnight.
-let furthestMile = null;
+// Overnight town (the end of each ride day), keyed by day number, from route.js.
+const overnightByDay = {};
+route.forEach(p => { if (p.kind === "overnight" && p.day >= 1) overnightByDay[p.day] = p; });
 
-// How many stages are finished, by mile: a day is done once we've reached its
-// overnight town. Small tolerance so arriving in town (camp near the marker)
-// counts — safe because overnight towns sit miles past the prior stop.
-// Boundaries increase, so this is the largest day whose end town we've reached.
-function daysDoneByMile(mile) {
-  if (mile == null || !dayData.length) return 0;
-  const b = dayBoundaryMiles();
-  const REACHED_MI = 0.5;
-  let done = 0;
-  for (let d = 1; d <= RIDE_DAYS; d++) {
-    if (mile >= b[d] - REACHED_MI) done = d; else break;
+// A stage is "done" once the beacon arrives at that day's overnight town —
+// measured as straight-line proximity, not route-mile, so stopping off the
+// course (campground/expo, or where the route winds through town) still counts.
+// Overnight towns sit 40+ mi apart, so this can't fire for the wrong day.
+// beaconDaysDone is a high-water mark, so it never regresses mid-session.
+const REACH_TOWN_MI = 3;
+let beaconDaysDone = 0;
+function noteArrival(lat, lng) {
+  for (let d = RIDE_DAYS; d >= 1; d--) {
+    const t = overnightByDay[d];
+    if (t && haversineMiles({ lat, lng }, { lat: t.lat, lng: t.lng }) <= REACH_TOWN_MI) {
+      beaconDaysDone = Math.max(beaconDaysDone, d);
+      break;
+    }
   }
-  return done;
 }
 
-// Effective completed-day count: the date-based floor lifted live once the
-// beacon shows we've actually finished a stage, so followers see a day tick
-// off when we arrive, not at midnight. Never regresses below the date floor.
+// Effective completed-day count: the date-based floor, lifted live once the
+// beacon shows we've reached a stage's overnight town, so followers see a day
+// tick off when we arrive, not at midnight. Never regresses below the floor.
 function daysDone() {
-  return Math.max(daysCompleted, daysDoneByMile(furthestMile));
+  return Math.max(daysCompleted, beaconDaysDone);
 }
 
 function renderDayProgress() {
@@ -500,7 +501,10 @@ function renderLive(data) {
   const rideOn = daysToStart <= 0 || previewLive;
   const headerMile = rideOn ? pos.mile : null;
   const liveMile = rideOn && fixAgeMin <= 45 ? pos.mile : null;
-  if (headerMile != null) furthestMile = Math.max(furthestMile ?? 0, headerMile);
+  if (rideOn) {
+    noteArrival(latest.lat, latest.lng);
+    (data.trail || []).forEach(p => noteArrival(p.lat, p.lng));
+  }
   renderProgressStats(headerMile);
   updateRiderMarker(liveMile);
   renderDayProgress();
