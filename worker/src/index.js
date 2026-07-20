@@ -103,6 +103,13 @@ export default {
 };
 
 async function refreshStats(env) {
+  // Once the ride starts, freeze the training counter (see STATS_FREEZE_AT in
+  // wrangler.toml): RAGBRAI rides logged to the club would inflate a number
+  // meant to reflect pre-ride training. Leave the last-written `stats` in place
+  // and skip the Strava fetch + accumulation entirely.
+  const freezeAt = env.STATS_FREEZE_AT ? Date.parse(env.STATS_FREEZE_AT) : NaN;
+  if (!Number.isNaN(freezeAt) && Date.now() >= freezeAt) return;
+
   const refresh_token = await env.RAGBRAI_KV.get("refresh_token");
   if (!refresh_token) return;
 

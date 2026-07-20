@@ -19,6 +19,12 @@ REDIRECT_URI = "https://ragbrai-stats.pmcathey.workers.dev/callback"
 # live count, so changing them never disturbs the accumulator).
 STATS_BASELINE_MILES = "730.42"
 STATS_BASELINE_RIDES = "42"
+# Freeze the training counter at this instant (ISO 8601). The counter is meant
+# to show pre-ride *training*; once the ride starts, RAGBRAI rides logged to the
+# club would otherwise inflate it. At/after this time the cron stops accumulating
+# and keeps serving the last-written total. Set to ride start (local midnight
+# CDT = 05:00Z). Blank/unset = never freeze.
+STATS_FREEZE_AT = "2026-07-19T05:00:00Z"
 # Public "anyone with link" Google Photos album the /photos endpoint scrapes.
 PHOTOS_ALBUM_URL = "https://photos.app.goo.gl/NritnnHuR8to2ZPH9"
 
